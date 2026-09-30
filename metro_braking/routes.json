@@ -1,0 +1,26 @@
+{
+  "checked_on": "2026-09-30",
+  "scope": "Published regular station order for corridors in the 2024 test recordings; no current service disruptions applied. Partial line coverage is explicit.",
+  "lines": {
+    "4": {
+      "source": "https://www.transilien.com/fr/page-lignes/metro-4",
+      "stations": ["Étienne Marcel", "Les Halles", "Châtelet", "Cité", "Saint-Michel", "Odéon", "Saint-Germain-des-Prés", "Saint-Sulpice", "Saint-Placide", "Montparnasse - Bienvenüe"]
+    },
+    "6": {
+      "source": "https://www.transilien.com/fr/page-lignes/metro-6",
+      "stations": ["Montparnasse - Bienvenüe", "Edgar Quinet", "Raspail"]
+    },
+    "8": {
+      "source": "https://www.transilien.com/fr/page-lignes/metro-8",
+      "stations": ["La Motte-Picquet - Grenelle", "École Militaire", "La Tour-Maubourg", "Invalides", "Concorde", "Madeleine"]
+    },
+    "13": {
+      "source": "https://www.transilien.com/fr/page-lignes/metro-13",
+      "stations": ["Montparnasse - Bienvenüe", "Gaîté", "Pernety"]
+    }
+  },
+  "aliases": {
+    "Montparnasse": "Montparnasse - Bienvenüe",
+    "La Motte": "La Motte-Picquet - Grenelle"
+  }
+}

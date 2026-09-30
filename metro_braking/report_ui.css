@@ -1,0 +1,16 @@
+.review-global{position:sticky;top:0;background:#f4f8fb;border:1px solid #d2dce5;padding:14px;z-index:5;box-shadow:0 2px 8px #0001}
+.review-global p{margin:8px 0 0;font-size:13px}.review-global button{margin-right:10px}
+button{font:inherit;cursor:pointer;border:1px solid #b9c7d3;border-radius:5px;background:#fff;padding:6px 10px;color:#173548}
+button:hover{background:#e9f2fa}button:focus-visible,input:focus-visible{outline:3px solid #187bb6;outline-offset:2px}
+button:disabled{cursor:default;opacity:.5}.stop-review{background:#f8fafc;border:1px solid #dbe3eb;padding:18px;border-radius:8px;margin:20px 0;overflow-x:auto}
+.review-chart{display:block;width:100%;height:300px;margin:12px 0;border:1px solid #cbd5df}
+.review-table{width:100%;background:white}.review-table td{vertical-align:middle}
+.review-table input[type=number]{width:95px}.review-table input[type=text]{width:120px}
+.review-table input{padding:6px;border:1px solid #bdcbd6;border-radius:4px;font:inherit}
+.decision-controls{white-space:nowrap}.decision-controls button{font-size:12px;padding:6px;margin:2px}
+button[data-decision=accepted][aria-pressed=true]{background:#217a4c;color:white}
+button[data-decision=discarded][aria-pressed=true]{background:#a63d40;color:white}
+button[data-decision=pending][aria-pressed=true]{background:#f3df99}
+tr[data-decision=accepted]{background:#eef8f1}tr[data-decision=discarded]{background:#fff1f1}
+.review-count{font-weight:600;color:#254b67}details>summary{cursor:pointer;margin:14px 0}
+.stop-review{scroll-margin-top:110px}tr[data-selected=true] td:first-child{border-left:4px solid #0867a5}

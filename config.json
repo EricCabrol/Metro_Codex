@@ -1,0 +1,15 @@
+{
+  "sample_hz": 20.0,
+  "cutoff_hz": 0.5,
+  "sensitivity_cutoffs_hz": [0.25, 0.5, 1.0],
+  "gap_seconds": 0.5,
+  "event_threshold_mps2": 0.25,
+  "minimum_event_seconds": 2.0,
+  "quiet_threshold_mps2": 0.12,
+  "stop_window_seconds": 1.0,
+  "minimum_stop_seconds": 15.0,
+  "stop_max_interruption_seconds": 1.5,
+  "stop_level_tolerance_mps2": 0.25,
+  "stop_min_quiet_fraction": 0.9,
+  "recordings": {}
+}
