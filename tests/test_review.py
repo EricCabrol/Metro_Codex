@@ -120,6 +120,31 @@ class ReviewTests(unittest.TestCase):
             server.server_close()
             thread.join()
 
+    def test_report_assets_are_fresh_even_with_conditional_cache_headers(self):
+        asset = self.output / "trip_charts.js"
+        asset.write_text("old script")
+        server = make_server(self.output, self.root / "reviews", 0)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        url = f"http://127.0.0.1:{server.server_port}"
+        try:
+            with urlopen(url + "/trip_charts.js") as response:
+                modified = response.headers["Last-Modified"]
+                self.assertEqual(response.headers["Cache-Control"], "no-store")
+            asset.write_text("new script")
+            request = Request(url + "/trip_charts.js", headers={"If-Modified-Since": modified})
+            with urlopen(request) as response:
+                self.assertEqual(response.status, 200)
+                self.assertEqual(response.read(), b"new script")
+                self.assertEqual(response.headers["Cache-Control"], "no-store")
+            for resource in ("/report.html", "/api/reviews"):
+                with urlopen(url + resource) as response:
+                    self.assertEqual(response.headers["Cache-Control"], "no-store")
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
+
     def test_candidate_ids_use_boundaries_not_row_numbers(self):
         first = dict(recording="trip", start_s=1., end_s=21.)
         self.assertEqual(candidate_id(first), candidate_id(first | {"status": "short"}))

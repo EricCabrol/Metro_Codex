@@ -162,6 +162,17 @@ def make_server(output, review_dir, port=8765):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=str(output), **kwargs)
 
+        def end_headers(self):
+            # Reports and assets are regenerated in place during review.
+            self.send_header("Cache-Control", "no-store")
+            super().end_headers()
+
+        def send_head(self):
+            # Same-second regeneration can leave Last-Modified unchanged.
+            if "If-Modified-Since" in self.headers:
+                del self.headers["If-Modified-Since"]
+            return super().send_head()
+
         def allowed(self):
             port = self.server.server_port
             hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
@@ -175,7 +186,6 @@ def make_server(output, review_dir, port=8765):
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(content)))
-            self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(content)
 
@@ -210,6 +220,7 @@ def make_server(output, review_dir, port=8765):
 def serve_report(output, review_dir, port):
     server = make_server(output, review_dir, port)
     print(f"Review stops at http://127.0.0.1:{server.server_port}/report.html", flush=True)
+    print(f"Serving report from {Path(output).resolve()}", flush=True)
     print(f"Decisions saved in {Path(review_dir).resolve()}", flush=True)
     try:
         server.serve_forever()
