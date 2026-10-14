@@ -30,8 +30,8 @@ class ReviewTests(unittest.TestCase):
         self.temp.cleanup()
 
     def test_persistence_csv_and_section_exports(self):
-        decisions = {"one": {"decision": "accepted", "time_s": 19., "note": 'quote " and, comma'},
-                     "two": {"decision": "discarded", "time_s": 70., "note": "false positive"}}
+        decisions = {"one": {"decision": "accepted", "time_s": 19., "restart_s": 40., "note": 'quote " and, comma'},
+                     "two": {"decision": "discarded", "time_s": 70., "restart_s": 90., "note": "false positive"}}
         self.store.save(decisions)
         reloaded = ReviewStore(self.output, self.root / "reviews")
         self.assertEqual(reloaded.read()["decisions"], decisions)
@@ -47,9 +47,9 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(signal.seconds_elapsed.iloc[0], 19)
         self.assertEqual(signal.seconds_elapsed.iloc[-1], 69)
         metrics = pd.read_csv(self.output / "trip_acceleration.csv")
-        # The later gap at 50s is outside the 19–49s measurement window.
-        self.assertEqual(metrics.iloc[0].status, "complete")
-        self.assertEqual(metrics.iloc[0].max_acceleration_mps2, 0)
+        # Restart at 40s moves the window across the gap at 50s.
+        self.assertEqual(metrics.iloc[0].status, "gap_or_missing_samples")
+        self.assertTrue(pd.isna(metrics.iloc[0].max_acceleration_mps2))
         self.assertTrue((self.output / "trip_acceleration.png").exists())
 
     def test_pending_and_changed_candidates_are_not_accepted(self):
@@ -68,14 +68,15 @@ class ReviewTests(unittest.TestCase):
         signal.loc[25, "axis_filtered_mps2"] = 1
         signal.loc[35, "axis_filtered_mps2"] = 8
         signal.to_csv(self.output / "signal_00.csv", index=False)
-        self.store.save({"one": {"decision": "accepted", "time_s": 20},
+        self.store.save({"one": {"decision": "accepted", "time_s": 20, "restart_s": 21},
                          "two": {"decision": "accepted", "time_s": 70}})
         result = self.store.export_sections()
         self.assertEqual(result["window_seconds"], 10)
         self.assertEqual(len(result["trips"]), 1)
         self.assertEqual(result["trips"][0]["metrics"]["max_deceleration_mps2"], 2)
         row = pd.read_csv(self.output / "trip_acceleration.csv").iloc[0]
-        self.assertEqual(row.window_end_s, 30)
+        self.assertEqual(row.window_start_s, 21.5)
+        self.assertEqual(row.window_end_s, 31.5)
         self.assertEqual(row.max_acceleration_mps2, 1)
         self.assertEqual(row.max_deceleration_mps2, 2)
         self.assertLess(row.deceleration_peak_time_s, row.peak_time_s)
@@ -87,6 +88,15 @@ class ReviewTests(unittest.TestCase):
                           {"one": {"decision": "accepted", "time_s": 20}, "two": {"decision": "accepted", "time_s": 20}}):
             with self.assertRaises(ValueError):
                 validate_decisions(self.payload, decisions)
+
+    def test_restart_validation_and_legacy_decision_migration(self):
+        legacy = {"one": {"decision": "accepted", "time_s": 20, "note": "kept"}}
+        validated = validate_decisions(self.payload, legacy)
+        self.assertEqual(validated["one"]["restart_s"], 40)
+        self.assertEqual(validated["one"]["note"], "kept")
+        for restart in [19, 101, float("nan"), True]:
+            with self.assertRaises(ValueError):
+                validate_decisions(self.payload, {"one": {"decision": "accepted", "time_s": 20, "restart_s": restart}})
 
     def test_browser_api_roundtrip_and_origin_check(self):
         server = make_server(self.output, self.root / "reviews", 0)

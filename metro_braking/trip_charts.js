@@ -22,7 +22,7 @@
       summary.textContent = `${m.recording} / trip ${m.section}`; card.append(summary);
       const description = document.createElement('p'); description.className = 'trip-extrema';
       const format = (value, time) => value === null ? 'not measured' : `${value.toFixed(4)} m/s² at ${(time - m.start_s).toFixed(3)} s`;
-      description.textContent = `Maximum acceleration: ${format(m.max_acceleration_mps2, m.peak_time_s)}. Maximum deceleration: ${format(m.max_deceleration_mps2, m.deceleration_peak_time_s)}. Window: ${m.window_seconds} s; ${m.status}; ${m.deceleration_status}.`;
+      description.textContent = `Maximum acceleration: ${format(m.max_acceleration_mps2, m.peak_time_s)}. Maximum deceleration: ${format(m.max_deceleration_mps2, m.deceleration_peak_time_s)}. Restart: ${m.restart_s.toFixed(3)} s in recording. Analysis: ${(m.window_start_s-m.restart_s).toFixed(3)}–${(m.window_end_s-m.restart_s).toFixed(3)} s after restart; ${m.status}; ${m.deceleration_status}.`;
       card.append(description);
       const toolbar = document.createElement('div'); toolbar.className = 'trip-toolbar';
       const inputs = [];
@@ -65,8 +65,9 @@
         const pad = Math.max(0.1, (ymax - ymin) * 0.12); ymin -= pad; ymax += pad;
         const y = a => bottom - (a - ymin) / (ymax - ymin) * (bottom - top);
         svg.append(svgNode('rect', {x:left, y:top, width:right-left, height:bottom-top, fill:'#fff'}));
-        const windowEnd = Math.min(m.window_seconds, duration, hi);
-        if (windowEnd > lo) svg.append(svgNode('rect', {x:left, y:top, width:x(windowEnd)-left, height:bottom-top, fill:'#e9f2fa'}));
+        const windowEnd = Math.min(m.window_end_s - m.restart_s, duration, hi);
+        const windowStart = Math.max(lo, m.window_start_s - m.restart_s);
+        if (windowEnd > windowStart) svg.append(svgNode('rect', {x:x(windowStart), y:top, width:x(windowEnd)-x(windowStart), height:bottom-top, fill:'#e9f2fa'}));
         for (let i = 0; i <= 5; i++) {
           const time = lo + (hi - lo) * i / 5;
           svg.append(svgNode('line', {x1:x(time), x2:x(time), y1:top, y2:bottom, stroke:'#d9e2ea'}));
@@ -91,7 +92,7 @@
         marker(m.peak_time_s, m.max_acceleration_mps2, '#187bb6', 'acceleration');
         marker(m.deceleration_peak_time_s, m.max_deceleration_mps2 === null ? null : -m.max_deceleration_mps2, '#c65a19', 'deceleration');
         svg.append(svgNode('text', {x:left, y:16}, 'Filtered forward acceleration (m/s²)'));
-        svg.append(svgNode('text', {x:(left+right)/2, y:316, 'text-anchor':'middle'}, 'Seconds since accepted stop time'));
+        svg.append(svgNode('text', {x:(left+right)/2, y:316, 'text-anchor':'middle'}, 'Seconds since restart time'));
       }
       inputs.forEach(input => input.onchange = () => {
         const from = Number(inputs[0].value), to = Number(inputs[1].value);
@@ -99,7 +100,7 @@
         view(from, to);
       });
       button('Zoom in', () => zoom(0.5)); button('Zoom out', () => zoom(2));
-      button(`First ${m.window_seconds} s`, () => view(0, Math.min(m.window_seconds, duration)));
+      button(`Analysis window (${m.window_seconds} s)`, () => view(m.window_start_s-m.restart_s, Math.min(m.window_end_s-m.restart_s, duration)));
       button('Full trip', () => view(0, duration));
       svg.addEventListener('wheel', event => {event.preventDefault(); zoom(event.deltaY < 0 ? 0.8 : 1.25, xTime(event));}, {passive:false});
       svg.onpointerdown = event => {if(event.button !== 0)return; anchor = xTime(event); svg.setPointerCapture(event.pointerId);};

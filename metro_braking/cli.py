@@ -14,10 +14,13 @@ import pandas as pd
 from .analysis import load_recording, detect_events, detect_stops, check_orientation, apply_reviews, sensor_inventory, split_sections
 from .routes import route_from_name, compare_stop_count, CATALOG
 from .review import report_payload, serve_report
-from .trip_acceleration import trip_acceleration, write_trip_acceleration, trip_chart
+from .trip_acceleration import trip_acceleration, write_trip_acceleration, trip_chart, resolve_restart
 
 
 def validate_config(config):
+    offset = config.get("trip_restart_offset_seconds", 0.5)
+    if not np.isfinite(offset) or offset < 0:
+        raise ValueError("trip_restart_offset_seconds must be finite and nonnegative")
     duration = config.get("trip_window_seconds", 30)
     if not np.isfinite(duration) or duration <= 0:
         raise ValueError("trip_window_seconds must be finite and positive")
@@ -127,13 +130,13 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     text += f'<p class="warning">Y points forward by convention; Yinv reverses it. PCA alignment and motion around dwells check that convention, with inconsistencies flagged rather than silently corrected. Stop candidates require at least {config["minimum_stop_seconds"]:g} seconds of observed dwell. Route counts are independent checks, not detection targets. No perceptual threshold or safety conclusion is established.</p>'
     text += '<p>Red shading: expected braking; blue: opposite-sign events retained when direction is uncertain; green: qualifying dwell candidates; orange: short quiet intervals excluded from counts; purple dashed lines: original SensorLogger Stop annotations. Stops use uncalibrated XYZ variation (green trace) and longitudinal distance from a quiet-window baseline (gray trace), with a trailing one-second window. Disturbances of up to 1.5 seconds may be bridged; recording gaps never are. At least 90% of each candidate must be quiet. Steady motion can still produce a false positive.</p>'
     text += '<p>Expected arrivals exclude the origin and include the destination. Intermediate stops exclude both endpoints. The count check compares interior candidates with intermediate stations; endpoint dwells may be truncated, and gaps or passenger movement may hide stops. Matching the count does not confirm station identities.</p>'
-    text += '<p>Use Accept, Discard or Pending below to review station stops. Arrival times are editable because rolling-window onset can lag the actual stop. Download reviewed stops CSV exports decisions without manual editing. For automatic disk saves and section exports, run <code>python -m metro_braking --serve</code> and open the printed local URL. Braking-event labels remain a separate workflow.</p>'
+    text += '<p>Use Accept, Discard or Pending below to review station stops. Arrival and restart times are editable. Rolling-window onset can lag the actual arrival. Download reviewed stops CSV exports decisions without manual editing. For automatic disk saves and section exports, run <code>python -m metro_braking --serve</code> and open the printed local URL. Braking-event labels remain a separate workflow.</p>'
     columns = ["recording", "expected_arrivals", "expected_intermediate_stops", "detected_interior_stops", "short_dwell_candidates", "stop_count_status", "orientation_status"]
     text += '<h2>Route and direction checks</h2>' + inventory.reindex(columns=columns).to_html(index=False)
     text += '<p>Full sampling and axis details: <a href="inventory.csv">inventory.csv</a>. Direction evidence: <a href="orientation_checks.csv">orientation_checks.csv</a>.</p>'
     text += '<p>Station-order sources, checked 30 September 2026: ' + ', '.join(f'<a href="{line["source"]}">Transilien line {number}</a>' for number, line in CATALOG["lines"].items()) + '. Regular topology is used for the 2024 recordings; current closures are not applied.</p>'
     text += '<h2>Exploratory comparison</h2>' + comparison
-    text += f'<h2>Acceleration and deceleration after validated stops</h2><p>Independent maximum signed filtered forward acceleration and maximum deceleration magnitude during the first {config.get("trip_window_seconds", 30):g} seconds after each accepted stop time. Both use the same window, which includes any remaining station dwell. Short trips and windows with missing samples are excluded. No negative acceleration is recorded as no_deceleration. Inspect orientation flags before interpretation.</p><p><a href="trip_acceleration.csv">Download trip acceleration and deceleration CSV</a></p><img src="trip_acceleration.png" alt="Maximum acceleration after validated stops"><img src="trip_deceleration.png" alt="Maximum deceleration after validated stops">'
+    text += f'<h2>Acceleration and deceleration after validated stops</h2><p>Independent maximum signed filtered forward acceleration and maximum deceleration magnitude over {config.get("trip_window_seconds", 30):g} seconds starting {config.get("trip_restart_offset_seconds", 0.5):g} seconds after each validated restart (end of the accepted stop). Both use the same window; station dwell is excluded. Short trips and windows with missing samples are excluded. No negative acceleration is recorded as no_deceleration. Inspect orientation flags before interpretation.</p><p><a href="trip_acceleration.csv">Download trip acceleration and deceleration CSV</a></p><img src="trip_acceleration.png" alt="Maximum acceleration after validated stops"><img src="trip_deceleration.png" alt="Maximum deceleration after validated stops">'
     if events:
         text += '<img src="comparison.png" alt="Candidate intensity and jerk comparison">'
     if failures:
@@ -234,8 +237,9 @@ def main():
             if not stops.empty:
                 own_stops = stops[stops.recording == folder.name]
                 for number, start, end, section in split_sections(signal, own_stops):
-                    trip_metrics.append(trip_acceleration(folder.name, number, start, end, section,
-                        config.get("trip_window_seconds", 30)))
+                    restart = resolve_restart(own_stops, start, intervals + [q for d in stop_diagnostics for q in d["rejected_dwells"]])
+                    trip_metrics.append(trip_acceleration(folder.name, number, restart, end, section,
+                        config.get("trip_window_seconds", 30), config.get("trip_restart_offset_seconds", 0.5), start))
                     trip_charts.append(trip_chart(trip_metrics[-1], section))
                     sections_folder = output / "sections"
                     sections_folder.mkdir(exist_ok=True)
@@ -258,7 +262,8 @@ def main():
     write_csv(orientation_checks, output / "orientation_checks.csv", columns=["recording", "stop_start_s", "phase", "mean_forward_mps2", "verdict"])
     write_csv(sensors, output / "sensors.csv")
     write_csv(section_inventory, output / "sections.csv", columns=["recording", "section", "start_s", "end_s", "file", "contains_gap"])
-    write_trip_acceleration(output, trip_metrics, config.get("trip_window_seconds", 30))
+    write_trip_acceleration(output, trip_metrics, config.get("trip_window_seconds", 30),
+                            config.get("trip_restart_offset_seconds", 0.5))
     write_csv([{"recording": q["recording"], "time_s": q["start_s"], "accepted": False,
                 "note": f'{q["duration_s"]:.1f}s dwell, {q["boundary"]}; onset delayed by rolling window; requires review'} for q in quiet],
               output / "stop_review_template.csv", columns=["recording", "time_s", "accepted", "note"])

@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from metro_braking.trip_acceleration import trip_acceleration, write_trip_acceleration, trip_chart
+from metro_braking.trip_acceleration import trip_acceleration, write_trip_acceleration, trip_chart, resolve_restart
 
 
 class TripAccelerationTests(unittest.TestCase):
@@ -20,6 +20,35 @@ class TripAccelerationTests(unittest.TestCase):
                     if row[0] == metric["peak_time_s"] - metric["start_s"])
         self.assertEqual(peak[1], metric["max_acceleration_mps2"])
         self.assertEqual(chart["metrics"], metric)
+    def test_restart_offset_excludes_dwell_and_initial_half_second(self):
+        times = np.arange(131.8, 210, 0.05)
+        values = np.full(len(times), 0.2)
+        values[times < 159.3] = -9
+        values[(times >= 159.3) & (times < 159.8)] = -8
+        values[(times >= 169) & (times < 169.1)] = 1.2
+        values[(times >= 180) & (times < 180.1)] = -0.7
+        signal = pd.DataFrame({"seconds_elapsed": times, "axis_filtered_mps2": values, "block": 0})
+        row = trip_acceleration("example", 2, 159.3, 209.7, signal, arrival_s=131.8)
+        self.assertAlmostEqual(row["window_start_s"], 159.8)
+        self.assertAlmostEqual(row["window_end_s"], 189.8)
+        self.assertEqual(row["max_acceleration_mps2"], 1.2)
+        self.assertEqual(row["max_deceleration_mps2"], 0.7)
+        chart = trip_chart(row, signal)
+        self.assertGreaterEqual(chart["blocks"][0][0][0], 0)
+        self.assertEqual(row["restart_s"], 159.3)
+
+    def test_legacy_csv_resolves_end_and_explicit_restart_wins(self):
+        stops = pd.DataFrame([{"time_s": 131.8, "accepted": True}])
+        candidates = [{"start_s": 131.7623, "end_s": 159.3123}]
+        self.assertEqual(resolve_restart(stops, 131.8, candidates), 159.3123)
+        stops["restart_s"] = 160
+        self.assertEqual(resolve_restart(stops, 131.8, candidates), 160)
+        stops["restart_s"] = None
+        with self.assertRaises(ValueError):
+            resolve_restart(stops, 131.8, [])
+        with self.assertRaises(ValueError):
+            resolve_restart(stops, 131.8, candidates * 2)
+
     def departure_signal(self):
         signal = self.signal()
         signal.axis_filtered_mps2 = 0.4
@@ -33,11 +62,11 @@ class TripAccelerationTests(unittest.TestCase):
         self.assertEqual(row["max_deceleration_mps2"], 3)
         self.assertAlmostEqual(row["peak_time_s"], 18)
         self.assertAlmostEqual(row["deceleration_peak_time_s"], 15)
-        self.assertEqual(row["window_end_s"], 40)
+        self.assertEqual(row["window_end_s"], 40.5)
         shorter = trip_acceleration("trip", 1, 10, 50, self.departure_signal(), 6)
         self.assertEqual(shorter["max_acceleration_mps2"], 0.4)
         self.assertEqual(shorter["max_deceleration_mps2"], 3)
-        self.assertEqual(shorter["window_end_s"], 16)
+        self.assertEqual(shorter["window_end_s"], 16.5)
 
     def test_gap_or_short_trip_excludes_both_measurements(self):
         signal = self.departure_signal()
@@ -77,7 +106,7 @@ class TripAccelerationTests(unittest.TestCase):
         self.assertEqual(row["status"], "complete")
         self.assertEqual(row["max_acceleration_mps2"], 9)
         self.assertAlmostEqual(row["peak_time_s"], 35)
-        self.assertEqual(row["window_end_s"], 40)
+        self.assertEqual(row["window_end_s"], 40.5)
         signal = self.signal()
         signal.axis_filtered_mps2 = -2.0
         signal.loc[20, "axis_filtered_mps2"] = -0.2

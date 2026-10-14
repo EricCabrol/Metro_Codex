@@ -149,10 +149,21 @@ python -m metro_braking --stops reviews/stops.csv --output results_reviewed
 ```
 
 Each trip between two accepted stop times produces independent acceleration
-and deceleration maxima over the same window: the first **30 seconds** after
-its start by default. Set `trip_window_seconds` in `config.json` to change the
+and deceleration maxima over the same window: the first **30 seconds** starting 0.5 seconds after
+the restart by default. Set `trip_window_seconds` in `config.json` to change the
 common duration. Neither peak depends on the timing or presence of the other.
-The window begins at the reviewed arrival time and includes any remaining dwell.
+The restart is the end of the accepted stop interval, not its arrival time.
+Set `trip_restart_offset_seconds` (default 0.5) to change the delay before analysis.
+Both graphs use restart time as t=0, so the default measurement window is
+[0.5, 30.5) seconds on that axis. Station dwell and the first 0.5 seconds are excluded.
+For a stop spanning 131.8–159.3 s, the restart is 159.3 s and analysis covers
+[159.8, 189.8) s in the recording. The next accepted arrival still bounds the trip.
+Review controls expose editable arrival and restart times. New stop CSV exports
+include `restart_s` and `candidate_id`. Legacy arrival-only CSVs are supported
+when an arrival uniquely matches a detected stop start (including one-decimal
+rounding); its detected end supplies the restart. If the match is ambiguous or
+missing, re-export decisions or add an explicit `restart_s`; arrival is never
+silently used as restart.
 `trip_acceleration.csv` records the signed maximum filtered forward acceleration,
 its timestamp, the positive magnitude of the most negative filtered acceleration,
 and its timestamp. No negative acceleration yields `no_deceleration` and an empty
@@ -166,9 +177,9 @@ trip measurement. At least two accepted stops per recording are required.
 
 The report includes a filtered signal chart for each validated trip, with blue
 acceleration and orange deceleration markers at the exact measured extrema.
-Time is relative to the accepted stop; shading marks the configured measurement
+Time is relative to the restart; shading marks the configured measurement
 window. Expand a trip, drag across the chart or use the mouse wheel to zoom.
-Numeric time bounds, Zoom in/out, First window and Full trip buttons provide
+Numeric time bounds, Zoom in/out, Analysis window and Full trip buttons provide
 keyboard-accessible controls. Gaps remain separate signal blocks. Batch charts
 work without a server; exporting current browser decisions refreshes the charts.
 

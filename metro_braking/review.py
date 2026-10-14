@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 import pandas as pd
 from .analysis import split_sections
-from .trip_acceleration import trip_acceleration, write_trip_acceleration, trip_chart
+from .trip_acceleration import trip_acceleration, write_trip_acceleration, trip_chart, resolve_restart
 
 
 def candidate_id(row):
@@ -23,6 +23,7 @@ def report_payload(summaries, quiet, rejected, config, series):
     candidates += [dict(row, id=candidate_id(row), automatic=False) for row in rejected]
     return {"version": 1, "minimum_stop_seconds": config["minimum_stop_seconds"],
             "trip_window_seconds": config.get("trip_window_seconds", 30),
+            "trip_restart_offset_seconds": config.get("trip_restart_offset_seconds", 0.5),
             "recordings": summaries, "candidates": candidates, "series": series}
 
 
@@ -44,10 +45,15 @@ def validate_decisions(payload, decisions):
         recording = recordings[candidates[key]["recording"]]
         if not recording["start_s"] <= time <= recording["end_s"]:
             raise ValueError("Arrival time lies outside the recording")
+        restart = value.get("restart_s", candidates[key]["end_s"])
+        if isinstance(restart, bool) or not isinstance(restart, (int, float)) or not math.isfinite(restart):
+            raise ValueError("Restart time must be finite")
+        if not time <= restart <= recording["end_s"]:
+            raise ValueError("Restart time must be at or after arrival and inside the recording")
         note = value.get("note", "")
         if not isinstance(note, str) or len(note) > 2000:
             raise ValueError("Note must be text of at most 2000 characters")
-        validated[key] = {"decision": decision, "time_s": time, "note": note}
+        validated[key] = {"decision": decision, "time_s": time, "restart_s": restart, "note": note}
     accepted_times = set()
     for key, value in validated.items():
         if value["decision"] == "accepted":
@@ -64,6 +70,7 @@ def review_rows(payload, decisions):
         value = decisions.get(candidate["id"])
         if value and value["decision"] != "pending":
             rows.append({"recording": candidate["recording"], "time_s": value["time_s"],
+                         "restart_s": value.get("restart_s", candidate["end_s"]), "candidate_id": candidate["id"],
                          "accepted": value["decision"] == "accepted", "note": value["note"]})
     return rows
 
@@ -95,7 +102,7 @@ class ReviewStore:
             temporary = self.path.with_suffix(".tmp")
             temporary.write_text(json.dumps({"version": 1, "decisions": previous}, indent=2), encoding="utf-8")
             temporary.replace(self.path)
-            self._csv(self.review_dir / "stops.csv", review_rows(payload, current), ["recording", "time_s", "accepted", "note"])
+            self._csv(self.review_dir / "stops.csv", review_rows(payload, current), ["recording", "time_s", "restart_s", "candidate_id", "accepted", "note"])
             return self.read()
 
     @staticmethod
@@ -120,8 +127,9 @@ class ReviewStore:
                     continue
                 signal = pd.read_csv(self.output / recording["signal_file"], float_precision="round_trip")
                 for number, start, end, section in split_sections(signal, pd.DataFrame(accepted)):
-                    metrics.append(trip_acceleration(recording["recording"], number, start, end, section,
-                        payload.get("trip_window_seconds", 30)))
+                    restart = resolve_restart(pd.DataFrame(accepted), start, payload["candidates"])
+                    metrics.append(trip_acceleration(recording["recording"], number, restart, end, section,
+                        payload.get("trip_window_seconds", 30), payload.get("trip_restart_offset_seconds", 0.5), start))
                     charts.append(trip_chart(metrics[-1], section))
                     key = hashlib.sha256(recording["recording"].encode()).hexdigest()[:12]
                     relative = f"reviewed_sections/{generation}/{key}_{number:03d}.csv"
@@ -134,7 +142,8 @@ class ReviewStore:
                 section.to_csv(target, index=False)
             self._csv(self.output / "reviewed_sections.csv", [p[2] for p in plan],
                       ["recording", "section", "start_s", "end_s", "file", "contains_gap"])
-            write_trip_acceleration(self.output, metrics, payload.get("trip_window_seconds", 30))
+            write_trip_acceleration(self.output, metrics, payload.get("trip_window_seconds", 30),
+                                    payload.get("trip_restart_offset_seconds", 0.5))
             return {"sections": len(plan), "index": "reviewed_sections.csv",
                     "trips": charts,
                     "acceleration_csv": "trip_acceleration.csv",

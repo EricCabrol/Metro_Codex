@@ -5,7 +5,7 @@
   let decisions = {}, server = false, saveQueue = Promise.resolve();
   const status = document.getElementById('review-save-status');
   const all = new Map(data.candidates.map(c => [c.id, c]));
-  const state = c => decisions[c.id] || {decision: 'pending', time_s: c.start_s, note: ''};
+  const state = c => ({decision: 'pending', time_s: c.start_s, restart_s: c.end_s, note: '', ...decisions[c.id]});
   const element = (tag, text, className) => {
     const e = document.createElement(tag); if (text !== undefined) e.textContent = text;
     if (className) e.className = className; return e;
@@ -88,7 +88,7 @@
     if (!card) return;
     const own = data.candidates.filter(c=>c.recording===recording.recording).sort((a,b)=>a.start_s-b.start_s);
     const heading = element('h3','Review station stops'); card.append(heading);
-    card.append(element('p','Select a candidate to inspect its surrounding signal. Accept confirms a station stop; discard excludes it. Short candidates can be accepted after inspection.'));
+    card.append(element('p','Select a candidate to inspect its surrounding signal. Accept confirms a station stop; discard excludes it. Short candidates can be accepted after inspection. Restart defaults to the end of the accepted stop; adjust it if necessary.'));
     card.append(element('p','', 'review-count'));
     let selected = own[0] || null, zoom = true;
     const toolbar = element('div', undefined, 'review-toolbar');
@@ -96,7 +96,7 @@
     toolbar.append(zoomButton); card.append(toolbar);
     const canvas = element('canvas',undefined,'review-chart'); canvas.setAttribute('aria-label','Acceleration and stop evidence around selected candidate'); card.append(canvas);
     const table = element('table',undefined,'review-table');
-    const header = element('tr'); ['Candidate','Duration','Boundary','Decision','Arrival time (s)','Note'].forEach(t=>header.append(element('th',t))); table.append(header);
+    const header = element('tr'); ['Candidate','Duration','Boundary','Decision','Arrival time (s)','Restart time (s)','Note'].forEach(t=>header.append(element('th',t))); table.append(header);
     const body = element('tbody'); table.append(body); card.append(table);
     const refresh = () => {updateCount(card,recording); draw(canvas,recording,selected,zoom);
       body.querySelectorAll('tr').forEach(row=>row.dataset.selected=String(selected?.id===row.dataset.candidateId));};
@@ -115,7 +115,9 @@
       }
       row.append(controls);
       const timeCell=element('td');const time=element('input');time.type='number';time.step='any';time.min=recording.start_s;time.max=recording.end_s;time.value=state(c).time_s.toFixed(3);time.setAttribute('aria-label','Arrival time');
-      time.onchange=()=>{if(!time.checkValidity()||time.value===''){time.reportValidity();return;}decisions[c.id]={...state(c),time_s:Number(time.value)};selected=c;refresh();save();};timeCell.append(time);row.append(timeCell);
+      time.onchange=()=>{if(!time.checkValidity()||time.value===''){time.reportValidity();return;}if(Number(time.value)>state(c).restart_s){time.value=state(c).time_s;return;}decisions[c.id]={...state(c),time_s:Number(time.value)};selected=c;refresh();save();};timeCell.append(time);row.append(timeCell);
+      const restartCell=element('td');const restart=element('input');restart.type='number';restart.step='any';restart.min=state(c).time_s;restart.max=recording.end_s;restart.value=state(c).restart_s.toFixed(3);restart.setAttribute('aria-label','Restart time');
+      restart.onchange=()=>{restart.min=state(c).time_s;if(!restart.checkValidity()||restart.value===''){restart.reportValidity();return;}decisions[c.id]={...state(c),restart_s:Number(restart.value)};selected=c;refresh();save();};restartCell.append(restart);row.append(restartCell);
       const noteCell=element('td');const note=element('input');note.type='text';note.maxLength=2000;note.value=state(c).note;note.setAttribute('aria-label','Stop note');note.onchange=()=>{decisions[c.id]={...state(c),note:note.value};save();};noteCell.append(note);row.append(noteCell);
       body.append(row);redraw();
     }
@@ -124,8 +126,8 @@
   }
   function downloadCSV() {
     const quote = v => '"'+String(v).replaceAll('"','""')+'"';
-    const rows=[['recording','time_s','accepted','note']];
-    for(const c of data.candidates) {const s=state(c);if(s.decision!=='pending') rows.push([c.recording,s.time_s,s.decision==='accepted',s.note]);}
+    const rows=[['recording','time_s','restart_s','candidate_id','accepted','note']];
+    for(const c of data.candidates) {const s=state(c);if(s.decision!=='pending') rows.push([c.recording,s.time_s,s.restart_s,c.id,s.decision==='accepted',s.note]);}
     const link=element('a');const url=URL.createObjectURL(new Blob([rows.map(row=>row.map(quote).join(',')).join('\r\n')+'\r\n'],{type:'text/csv;charset=utf-8'}));
     link.href=url;link.download='stops.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
