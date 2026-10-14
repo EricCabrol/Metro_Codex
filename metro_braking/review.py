@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 
 import pandas as pd
 from .analysis import split_sections
+from .trip_acceleration import trip_acceleration, write_trip_acceleration, trip_chart
 
 
 def candidate_id(row):
@@ -21,6 +22,7 @@ def report_payload(summaries, quiet, rejected, config, series):
     candidates = [dict(row, id=candidate_id(row), automatic=True) for row in quiet]
     candidates += [dict(row, id=candidate_id(row), automatic=False) for row in rejected]
     return {"version": 1, "minimum_stop_seconds": config["minimum_stop_seconds"],
+            "trip_window_seconds": config.get("trip_window_seconds", 30),
             "recordings": summaries, "candidates": candidates, "series": series}
 
 
@@ -110,12 +112,17 @@ class ReviewStore:
             rows = review_rows(payload, decisions)
             generation = hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest()[:12]
             plan = []
+            metrics = []
+            charts = []
             for recording in payload["recordings"]:
                 accepted = [r for r in rows if r["recording"] == recording["recording"] and r["accepted"]]
                 if len(accepted) < 2:
                     continue
-                signal = pd.read_csv(self.output / recording["signal_file"])
+                signal = pd.read_csv(self.output / recording["signal_file"], float_precision="round_trip")
                 for number, start, end, section in split_sections(signal, pd.DataFrame(accepted)):
+                    metrics.append(trip_acceleration(recording["recording"], number, start, end, section,
+                        payload.get("trip_window_seconds", 30)))
+                    charts.append(trip_chart(metrics[-1], section))
                     key = hashlib.sha256(recording["recording"].encode()).hexdigest()[:12]
                     relative = f"reviewed_sections/{generation}/{key}_{number:03d}.csv"
                     plan.append((relative, section, {"recording": recording["recording"], "section": number,
@@ -127,7 +134,14 @@ class ReviewStore:
                 section.to_csv(target, index=False)
             self._csv(self.output / "reviewed_sections.csv", [p[2] for p in plan],
                       ["recording", "section", "start_s", "end_s", "file", "contains_gap"])
-            return {"sections": len(plan), "index": "reviewed_sections.csv"}
+            write_trip_acceleration(self.output, metrics, payload.get("trip_window_seconds", 30))
+            return {"sections": len(plan), "index": "reviewed_sections.csv",
+                    "trips": charts,
+                    "acceleration_csv": "trip_acceleration.csv",
+                    "acceleration_plot": "trip_acceleration.png",
+                    "deceleration_plot": "trip_deceleration.png",
+                    "window_seconds": payload.get("trip_window_seconds", 30),
+                    "complete_windows": sum(r["status"] == "complete" for r in metrics)}
 
 
 def make_server(output, review_dir, port=8765):

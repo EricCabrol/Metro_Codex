@@ -14,3 +14,5 @@ button[data-decision=pending][aria-pressed=true]{background:#f3df99}
 tr[data-decision=accepted]{background:#eef8f1}tr[data-decision=discarded]{background:#fff1f1}
 .review-count{font-weight:600;color:#254b67}details>summary{cursor:pointer;margin:14px 0}
 .stop-review{scroll-margin-top:110px}tr[data-selected=true] td:first-child{border-left:4px solid #0867a5}
+
+.trip-signal{border:1px solid #cbd5df;border-radius:8px;padding:12px;margin:14px 0;background:#f8fafc}.trip-signal summary{overflow-wrap:anywhere}.trip-extrema{font-size:14px}.trip-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.trip-toolbar input{width:95px;padding:6px}.trip-chart{display:block;width:100%;height:320px;touch-action:none;cursor:crosshair}.trip-chart text{font:12px system-ui;fill:#254b67}

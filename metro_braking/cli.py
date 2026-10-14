@@ -14,9 +14,13 @@ import pandas as pd
 from .analysis import load_recording, detect_events, detect_stops, check_orientation, apply_reviews, sensor_inventory, split_sections
 from .routes import route_from_name, compare_stop_count, CATALOG
 from .review import report_payload, serve_report
+from .trip_acceleration import trip_acceleration, write_trip_acceleration, trip_chart
 
 
 def validate_config(config):
+    duration = config.get("trip_window_seconds", 30)
+    if not np.isfinite(duration) or duration <= 0:
+        raise ValueError("trip_window_seconds must be finite and positive")
     for name in ("sample_hz", "cutoff_hz", "gap_seconds", "event_threshold_mps2",
                  "minimum_event_seconds", "quiet_threshold_mps2", "minimum_stop_seconds", "stop_level_tolerance_mps2"):
         if not np.isfinite(config[name]) or config[name] <= 0:
@@ -79,7 +83,7 @@ def write_csv(rows, path, columns=None):
     pd.DataFrame(rows, columns=columns).to_csv(path, index=False)
 
 
-def report(output, summaries, events, failures, quiet, rejected_dwells, config, series):
+def report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trips=None):
     inventory = pd.DataFrame(summaries)
     event_frame = pd.DataFrame(events)
     cells = []
@@ -129,15 +133,18 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     text += '<p>Full sampling and axis details: <a href="inventory.csv">inventory.csv</a>. Direction evidence: <a href="orientation_checks.csv">orientation_checks.csv</a>.</p>'
     text += '<p>Station-order sources, checked 30 September 2026: ' + ', '.join(f'<a href="{line["source"]}">Transilien line {number}</a>' for number, line in CATALOG["lines"].items()) + '. Regular topology is used for the 2024 recordings; current closures are not applied.</p>'
     text += '<h2>Exploratory comparison</h2>' + comparison
+    text += f'<h2>Acceleration and deceleration after validated stops</h2><p>Independent maximum signed filtered forward acceleration and maximum deceleration magnitude during the first {config.get("trip_window_seconds", 30):g} seconds after each accepted stop time. Both use the same window, which includes any remaining station dwell. Short trips and windows with missing samples are excluded. No negative acceleration is recorded as no_deceleration. Inspect orientation flags before interpretation.</p><p><a href="trip_acceleration.csv">Download trip acceleration and deceleration CSV</a></p><img src="trip_acceleration.png" alt="Maximum acceleration after validated stops"><img src="trip_deceleration.png" alt="Maximum deceleration after validated stops">'
     if events:
         text += '<img src="comparison.png" alt="Candidate intensity and jerk comparison">'
     if failures:
         text += '<h2>Failed recordings</h2><pre>' + html.escape(json.dumps(failures, indent=2)) + '</pre>'
     payload = report_payload(summaries, quiet, rejected_dwells, config, series)
+    payload["trips"] = trips or []
+    text += '<section id="trip-signals"><h2>Filtered signal for each validated trip</h2><p>Blue: maximum acceleration. Orange: maximum deceleration. Shading marks the measurement window. Drag across a chart or use the mouse wheel to zoom in time; exact time bounds and reset buttons are also available.</p><div id="trip-charts"></div></section>'
     encoded = json.dumps(payload, allow_nan=False, default=lambda v: v.item(), separators=(",", ":"))
     (output / "report_data.json").write_text(encoded, encoding="utf-8")
-    text += ''.join(cells) + '<script id="review-data" type="application/json">' + encoded.replace("<", "\\u003c") + '</script><script src="report_ui.js"></script></html>'
-    for asset in ("report_ui.js", "report_ui.css"):
+    text += ''.join(cells) + '<script id="review-data" type="application/json">' + encoded.replace("<", "\\u003c") + '</script><script src="trip_charts.js"></script><script src="report_ui.js"></script></html>'
+    for asset in ("report_ui.js", "report_ui.css", "trip_charts.js"):
         shutil.copyfile(Path(__file__).with_name(asset), output / asset)
     (output / "report.html").write_text(text, encoding="utf-8")
 
@@ -181,6 +188,8 @@ def main():
     (output / "plots").mkdir(exist_ok=True)
     summaries, events, quiet, sensors, failures, manifest = [], [], [], [], [], []
     section_inventory = []
+    trip_metrics = []
+    trip_charts = []
     orientation_checks = []
     rejected_dwells = []
     series = {}
@@ -225,6 +234,9 @@ def main():
             if not stops.empty:
                 own_stops = stops[stops.recording == folder.name]
                 for number, start, end, section in split_sections(signal, own_stops):
+                    trip_metrics.append(trip_acceleration(folder.name, number, start, end, section,
+                        config.get("trip_window_seconds", 30)))
+                    trip_charts.append(trip_chart(trip_metrics[-1], section))
                     sections_folder = output / "sections"
                     sections_folder.mkdir(exist_ok=True)
                     filename = f"sections/{len(summaries):02d}_{number:03d}.csv"
@@ -246,6 +258,7 @@ def main():
     write_csv(orientation_checks, output / "orientation_checks.csv", columns=["recording", "stop_start_s", "phase", "mean_forward_mps2", "verdict"])
     write_csv(sensors, output / "sensors.csv")
     write_csv(section_inventory, output / "sections.csv", columns=["recording", "section", "start_s", "end_s", "file", "contains_gap"])
+    write_trip_acceleration(output, trip_metrics, config.get("trip_window_seconds", 30))
     write_csv([{"recording": q["recording"], "time_s": q["start_s"], "accepted": False,
                 "note": f'{q["duration_s"]:.1f}s dwell, {q["boundary"]}; onset delayed by rolling window; requires review'} for q in quiet],
               output / "stop_review_template.csv", columns=["recording", "time_s", "accepted", "note"])
@@ -262,7 +275,7 @@ def main():
                     "versions": {"numpy": np.__version__, "pandas": pd.__version__,
                                  "scipy": __import__("scipy").__version__, "matplotlib": matplotlib.__version__}}
     (output / "manifest.json").write_text(json.dumps(manifest_out, indent=2), encoding="utf-8")
-    report(output, summaries, events, failures, quiet, rejected_dwells, config, series)
+    report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trip_charts)
     print(f"Finished: {len(summaries)} recordings, {len(events)} events, {len(failures)} failures. {output / 'report.html'}")
     if failures:
         raise SystemExit(1)

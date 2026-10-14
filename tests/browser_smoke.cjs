@@ -12,7 +12,7 @@ const assert = require('node:assert/strict');
   const output = path.join(temporary, 'results');
   fs.mkdirSync(output);
   for (const file of fs.readdirSync('results')) {
-    if (file.startsWith('report') || file.startsWith('signal_') || ['inventory.csv','orientation_checks.csv','comparison.png'].includes(file))
+    if (file.startsWith('report') || file.startsWith('signal_') || ['inventory.csv','orientation_checks.csv','comparison.png','trip_charts.js','trip_acceleration.png','trip_deceleration.png','trip_acceleration.csv'].includes(file))
       fs.copyFileSync(path.join('results',file),path.join(output,file));
   }
   fs.cpSync('results/plots', path.join(output,'plots'), {recursive:true});
@@ -48,6 +48,15 @@ const assert = require('node:assert/strict');
     await page.getByRole('button',{name:'Export sections from accepted stops'}).click();
     await page.locator('#review-save-status').filter({hasText:'Exported 1 sections'}).waitFor();
     assert(fs.existsSync(path.join(output,'reviewed_sections.csv')));
+    assert.equal(await page.locator('.trip-signal').count(),1);
+    const trip=page.locator('.trip-signal').first();
+    await trip.locator('summary').click();
+    const chart=trip.locator('.trip-chart');
+    assert(await chart.locator('[data-kind="acceleration"]').count()===1);
+    const before=Number(await chart.getAttribute('data-view-end'));
+    await trip.getByRole('button',{name:'Zoom in',exact:true}).click();
+    assert(Number(await chart.getAttribute('data-view-end'))-Number(await chart.getAttribute('data-view-start'))<before);
+    await trip.getByRole('button',{name:'Full trip',exact:true}).click();
     const saved=JSON.parse(fs.readFileSync(path.join(temporary,'reviews','stops.json'),'utf8'));
     assert.equal(saved.decisions[await rows.nth(0).getAttribute('data-candidate-id')].time_s,adjusted);
     const csvDownload=page.waitForEvent('download');

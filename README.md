@@ -148,6 +148,34 @@ with the existing batch workflow:
 python -m metro_braking --stops reviews/stops.csv --output results_reviewed
 ```
 
+Each trip between two accepted stop times produces independent acceleration
+and deceleration maxima over the same window: the first **30 seconds** after
+its start by default. Set `trip_window_seconds` in `config.json` to change the
+common duration. Neither peak depends on the timing or presence of the other.
+The window begins at the reviewed arrival time and includes any remaining dwell.
+`trip_acceleration.csv` records the signed maximum filtered forward acceleration,
+its timestamp, the positive magnitude of the most negative filtered acceleration,
+and its timestamp. No negative acceleration yields `no_deceleration` and an empty
+deceleration value. A negative-only window can still have a deceleration measurement.
+Trips shorter than the configured duration and windows with missing samples or
+gaps are flagged and excluded from both comparison plots, `trip_acceleration.png`
+and `trip_deceleration.png`. Positive acceleration means propulsion under the
+configured axis convention; check orientation flags before comparing recordings.
+The last accepted stop has no following validated trip boundary and produces no
+trip measurement. At least two accepted stops per recording are required.
+
+The report includes a filtered signal chart for each validated trip, with blue
+acceleration and orange deceleration markers at the exact measured extrema.
+Time is relative to the accepted stop; shading marks the configured measurement
+window. Expand a trip, drag across the chart or use the mouse wheel to zoom.
+Numeric time bounds, Zoom in/out, First window and Full trip buttons provide
+keyboard-accessible controls. Gaps remain separate signal blocks. Batch charts
+work without a server; exporting current browser decisions refreshes the charts.
+
+The browser's **Export sections from accepted stops** action also refreshes
+this CSV and plot from current accepted decisions. Pending and discarded stops
+are excluded. With no reviewed trips, the plot explicitly shows no measurements.
+
 Opening `results/report.html` directly also works without a server: choices are
 saved in that browser's local storage, and **Download reviewed stops CSV** exports
 them without manual editing. Direct section exports and disk autosaves require

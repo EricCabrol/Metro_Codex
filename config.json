@@ -1,4 +1,5 @@
 {
+  "trip_window_seconds": 30.0,
   "sample_hz": 20.0,
   "cutoff_hz": 0.5,
   "sensitivity_cutoffs_hz": [0.25, 0.5, 1.0],

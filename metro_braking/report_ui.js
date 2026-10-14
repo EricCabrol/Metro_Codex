@@ -138,12 +138,18 @@
       catch {status.textContent='Browser-only mode. Download CSV to keep a portable copy.';}
     } else status.textContent='Browser-only mode. Choices persist here; Download CSV exports reviewed stops.';
     data.recordings.forEach(mount);
+    window.renderTripCharts(data.trips || []);
     document.getElementById('download-stops').onclick=downloadCSV;
     const exportButton=document.getElementById('export-sections');exportButton.disabled=!server;
     exportButton.onclick=async()=>{
       exportButton.disabled=true;
-      try {await saveQueue;const result=await request('/api/export-sections',{});status.textContent=`Exported ${result.sections} sections. At least two accepted stops per recording are required.`;
-        const link=document.getElementById('section-index');link.href=result.index;link.hidden=false;}
+      try {await saveQueue;const result=await request('/api/export-sections',{});status.textContent=`Exported ${result.sections} sections and compared ${result.complete_windows} complete ${result.window_seconds}-second acceleration/deceleration windows. At least two accepted stops per recording are required.`;
+        const link=document.getElementById('section-index');link.href=result.index;link.hidden=false;
+        const image=document.querySelector('img[src^="trip_acceleration.png"]');
+        if(image) image.src=result.acceleration_plot+'?updated='+Date.now();
+        const deceleration=document.querySelector('img[src^="trip_deceleration.png"]');
+        if(deceleration) deceleration.src=result.deceleration_plot+'?updated='+Date.now();
+        window.renderTripCharts(result.trips || []);}
       catch(error){status.textContent='Section export failed: '+error.message;}
       finally {exportButton.disabled=false;}
     };

@@ -46,6 +46,11 @@ class ReviewTests(unittest.TestCase):
         signal = pd.read_csv(self.output / sections.iloc[0].file)
         self.assertEqual(signal.seconds_elapsed.iloc[0], 19)
         self.assertEqual(signal.seconds_elapsed.iloc[-1], 69)
+        metrics = pd.read_csv(self.output / "trip_acceleration.csv")
+        # The later gap at 50s is outside the 19–49s measurement window.
+        self.assertEqual(metrics.iloc[0].status, "complete")
+        self.assertEqual(metrics.iloc[0].max_acceleration_mps2, 0)
+        self.assertTrue((self.output / "trip_acceleration.png").exists())
 
     def test_pending_and_changed_candidates_are_not_accepted(self):
         self.store.save({"one": {"decision": "pending", "time_s": 20., "note": ""}})
@@ -54,6 +59,26 @@ class ReviewTests(unittest.TestCase):
         (self.output / "report_data.json").write_text(json.dumps(self.payload))
         self.assertEqual(self.store.read()["decisions"], {})
         self.assertEqual(self.store.read()["unmatched_decisions"], 1)
+
+    def test_export_uses_configured_shared_window(self):
+        self.payload["trip_window_seconds"] = 10
+        (self.output / "report_data.json").write_text(json.dumps(self.payload))
+        signal = pd.read_csv(self.output / "signal_00.csv")
+        signal.loc[22, "axis_filtered_mps2"] = -2
+        signal.loc[25, "axis_filtered_mps2"] = 1
+        signal.loc[35, "axis_filtered_mps2"] = 8
+        signal.to_csv(self.output / "signal_00.csv", index=False)
+        self.store.save({"one": {"decision": "accepted", "time_s": 20},
+                         "two": {"decision": "accepted", "time_s": 70}})
+        result = self.store.export_sections()
+        self.assertEqual(result["window_seconds"], 10)
+        self.assertEqual(len(result["trips"]), 1)
+        self.assertEqual(result["trips"][0]["metrics"]["max_deceleration_mps2"], 2)
+        row = pd.read_csv(self.output / "trip_acceleration.csv").iloc[0]
+        self.assertEqual(row.window_end_s, 30)
+        self.assertEqual(row.max_acceleration_mps2, 1)
+        self.assertEqual(row.max_deceleration_mps2, 2)
+        self.assertLess(row.deceleration_peak_time_s, row.peak_time_s)
 
     def test_invalid_times_unknown_candidates_and_duplicates_rejected(self):
         for decisions in ({"missing": {"decision": "accepted", "time_s": 1}},
