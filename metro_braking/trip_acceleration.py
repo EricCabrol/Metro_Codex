@@ -5,6 +5,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from .global_statistics import write_global_statistics
+
 
 FIELDS = ["recording", "section", "start_s", "restart_s", "arrival_s", "end_s", "window_seconds", "window_start_s", "window_end_s",
           "max_acceleration_mps2", "peak_time_s", "status",
@@ -69,7 +71,7 @@ def trip_acceleration(recording, number, start, end, signal, window_seconds=30, 
     return row
 
 
-def write_trip_acceleration(output, rows, window_seconds=30, restart_offset_seconds=0.5):
+def write_trip_acceleration(output, rows, window_seconds=30, restart_offset_seconds=0.5, arrival_window_seconds=20, recording_lines=()):
     """Persist all outcomes and compare independent extrema in complete windows."""
     pd.DataFrame(rows, columns=FIELDS).to_csv(output / "trip_acceleration.csv", index=False)
     duration_fields = ["recording", "display_recording", "run_label", "line", "origin_station", "destination_station",
@@ -97,6 +99,8 @@ def write_trip_acceleration(output, rows, window_seconds=30, restart_offset_seco
         ax.grid(axis="x", alpha=0.2)
         fig.savefig(output / filename, dpi=140)
         plt.close(fig)
+
+    write_global_statistics(output, rows, window_seconds, restart_offset_seconds, arrival_window_seconds, recording_lines)
 
 
 def trip_chart(metric, signal):

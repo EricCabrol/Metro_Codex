@@ -2,7 +2,7 @@
   'use strict';
   const data = JSON.parse(document.getElementById('review-data').textContent);
   const key = 'metro-stop-decisions-v1';
-  let decisions = {}, server = false, saveQueue = Promise.resolve();
+  let decisions = {}, server = false, saveQueue = Promise.resolve(), recordingMutation = false;
   const status = document.getElementById('review-save-status');
   const detected = data.candidates.filter(c => !c.manual);
   const all = new Map(data.candidates.map(c => [c.id, c]));
@@ -109,6 +109,11 @@
     const card = document.querySelector(`[data-review-recording="${data.recordings.indexOf(recording)}"]`);
     if (!card) return;
     const own = data.candidates.filter(c=>c.recording===recording.recording).sort((a,b)=>a.start_s-b.start_s);
+    const archiveButton=element('button','Archive recording');archiveButton.type='button';
+    archiveButton.disabled=!server || !data.data_directory;
+    archiveButton.title='Move the source folder to the archive and rebuild the report. Restore it from Archived recordings.';
+    archiveButton.onclick=()=>changeRecording(recording.recording,'archive',archiveButton);
+    card.append(archiveButton);
     const heading = element('h3','Review station stops'); card.append(heading);
     card.append(element('p','Select a candidate to inspect its surrounding signal. Accept confirms a station stop; discard excludes it. Short candidates can be accepted after inspection. Restart defaults to the end of the accepted stop; adjust it if necessary.'));
     card.append(element('p','', 'review-count'));
@@ -223,6 +228,27 @@
   if (toolbar) new ResizeObserver(() => {
     document.documentElement.style.setProperty('--report-scroll-offset', `${toolbar.getBoundingClientRect().height+16}px`);
   }).observe(toolbar);
+  async function changeRecording(recording, action, button) {
+    if (recordingMutation) return;
+    if (action==='archive' && !confirm('Archive this recording? Its source folder will be moved to the archive. Reviews are kept and you can restore it below.')) return;
+    button.disabled=true;
+    recordingMutation=true;document.body.inert=true;
+    status.textContent='Moving recording and rebuilding report…';
+    try {await saveQueue;await request('/api/recordings',{recording,action});location.reload();}
+    catch(error){status.textContent=error.message;button.disabled=false;recordingMutation=false;document.body.inert=false;}
+  }
+  async function loadArchived() {
+    const list=document.getElementById('archive-list');if(!list || !server)return;
+    try {
+      const result=await request('/api/recordings');list.replaceChildren();
+      if(!result.enabled){list.textContent='Regenerate the report once to enable recording archiving.';return;}
+      if(!result.archived.length)list.textContent='No archived recordings.';
+      for(const entry of result.archived){
+        const row=element('p',entry.display_name+' '),button=element('button','Restore recording');
+        button.onclick=()=>changeRecording(entry.recording,'restore',button);row.append(button);list.append(row);
+      }
+    }catch(error){list.textContent=error.message;}
+  }
   async function init() {
     try {decisions={...(data.initial_decisions||{}),...JSON.parse(localStorage.getItem(key)||'{}')};} catch {decisions={...(data.initial_decisions||{})};}
     restoreManual(decisions);
@@ -233,6 +259,7 @@
       catch {status.textContent='Browser-only mode. Download CSV to keep a portable copy.';}
     } else status.textContent='Browser-only mode. Choices persist here; Download CSV exports reviewed stops.';
     data.recordings.forEach(mount);
+    await loadArchived();
     window.renderTripCharts(data.trips || []);
     document.getElementById('download-stops').onclick=downloadCSV;
     const exportButton=document.getElementById('export-sections');exportButton.disabled=!server;
@@ -244,6 +271,8 @@
         if(image) image.src=result.acceleration_plot+'?updated='+Date.now();
         const deceleration=document.querySelector('img[src^="trip_deceleration.png"]');
         if(deceleration) deceleration.src=result.deceleration_plot+'?updated='+Date.now();
+        const globalPlot=document.getElementById('global-statistics-plot');
+        if(globalPlot && result.global_statistics_plot)globalPlot.src=result.global_statistics_plot+'?updated='+Date.now();
         window.renderTripCharts(result.trips || []);}
       catch(error){status.textContent='Section export failed: '+error.message;}
       finally {exportButton.disabled=false;}

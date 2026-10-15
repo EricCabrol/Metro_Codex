@@ -12,7 +12,7 @@ const assert = require('node:assert/strict');
   const output = path.join(temporary, 'results');
   fs.mkdirSync(output);
   for (const file of fs.readdirSync('results')) {
-    if (file.startsWith('report') || file.startsWith('signal_') || ['inventory.csv','orientation_checks.csv','comparison.png','trip_charts.js','trip_acceleration.png','trip_deceleration.png','trip_acceleration.csv'].includes(file))
+    if (file.startsWith('report') || file.startsWith('signal_') || ['inventory.csv','orientation_checks.csv','comparison.png','trip_charts.js','run_comparison.js','global_statistics.png','trip_acceleration.png','trip_deceleration.png','trip_acceleration.csv'].includes(file))
       fs.copyFileSync(path.join('results',file),path.join(output,file));
   }
   fs.cpSync('results/plots', path.join(output,'plots'), {recursive:true});

@@ -6,10 +6,16 @@ import json
 import math
 from pathlib import Path
 import threading
+import shutil
+import subprocess
+import sys
+import tempfile
+
 from urllib.parse import urlsplit
 
 import pandas as pd
 from .analysis import split_sections
+from .recordings import RecordingArchive
 from .trip_acceleration import write_trip_acceleration
 from .runs import build_runs, duration_statistics
 from .manual_stops import review_candidates
@@ -88,7 +94,7 @@ class ReviewStore:
     def __init__(self, output, review_dir):
         self.output, self.review_dir = Path(output).resolve(), Path(review_dir).resolve()
         self.path = self.review_dir / "stops.json"
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
 
     def payload(self):
         return json.loads((self.output / "report_data.json").read_text(encoding="utf-8"))
@@ -116,7 +122,19 @@ class ReviewStore:
             temporary = self.path.with_suffix(".tmp")
             temporary.write_text(json.dumps({"version": 1, "decisions": previous}, indent=2), encoding="utf-8")
             temporary.replace(self.path)
-            self._csv(self.review_dir / "stops.csv", review_rows(payload, current), ["recording", "time_s", "restart_s", "candidate_id", "accepted", "note", "manual"])
+            fields = ["recording", "time_s", "restart_s", "candidate_id", "accepted", "note", "manual"]
+            csv_path = self.review_dir / "stops.csv"
+            retained = []
+            names = {r["recording"] for r in payload["recordings"]}
+            if csv_path.exists():
+                with csv_path.open(newline="", encoding="utf-8") as stream:
+                    retained = [{k: row.get(k, "") for k in fields} for row in csv.DictReader(stream) if row["recording"] not in names]
+            else:
+                manifest = self.output / "manifest.json"
+                if manifest.exists():
+                    rows = json.loads(manifest.read_text(encoding="utf-8"))
+                    retained = [{k: row.get(k, "") for k in fields} for row in rows.get("all_reviewed_stops", rows.get("reviewed_stops", [])) if row["recording"] not in names]
+            self._csv(csv_path, retained + review_rows(payload, current), fields)
             return self.read()
 
     @staticmethod
@@ -125,6 +143,56 @@ class ReviewStore:
             writer = csv.DictWriter(stream, fieldnames=fields)
             writer.writeheader()
             writer.writerows(rows)
+
+    def archive(self):
+        root = self.payload().get("data_directory")
+        if not root:
+            raise ValueError("Regenerate this report once to enable recording archiving")
+        return RecordingArchive(root, self.rebuild)
+
+    def recordings(self):
+        if not self.payload().get("data_directory"):
+            return {"enabled": False, "archived": []}
+        return {"enabled": True, "archived": self.archive().entries()}
+
+    def change_recording(self, name, action):
+        with self.lock:
+            archive = self.archive()
+            self.save(self.read()["decisions"])
+            archive.change(name, action, {r["recording"] for r in self.payload()["recordings"]})
+            return {"ok": True}
+
+    def rebuild(self):
+        """Build separately, then publish a complete report, retaining review exports."""
+        manifest = json.loads((self.output / "manifest.json").read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory(prefix="metro-rebuild-", dir=self.output.parent) as temporary:
+            work = Path(temporary)
+            config = work / "config.json"
+            config.write_text(json.dumps(manifest["configuration"]), encoding="utf-8")
+            staged = work / "report"
+            command = [sys.executable, "-m", "metro_braking", "--data", self.payload()["data_directory"],
+                       "--output", str(staged), "--config", str(config), "--allow-empty",
+                       "--cache-dir", manifest.get("cache_directory", str(self.output / ".recording_cache")),
+                       "--stops", str(self.review_dir / "stops.csv")]
+            events = manifest.get("all_reviews", manifest.get("reviews", []))
+            if events:
+                event_path = work / "events.csv"
+                pd.DataFrame(events).to_csv(event_path, index=False)
+                command += ["--reviews", str(event_path)]
+            result = subprocess.run(command, cwd=Path(__file__).resolve().parent.parent,
+                                    capture_output=True, text=True)
+            if result.returncode:
+                raise ValueError("Report rebuild failed; recording move cancelled. " + (result.stderr or result.stdout)[-1500:])
+            combined = work / "combined"
+            shutil.copytree(self.output, combined)
+            shutil.copytree(staged, combined, dirs_exist_ok=True)
+            backup = work / "previous"
+            self.output.rename(backup)
+            try:
+                combined.rename(self.output)
+            except Exception:
+                backup.rename(self.output)
+                raise
 
     def export_sections(self):
         with self.lock:
@@ -158,12 +226,14 @@ class ReviewStore:
                       ["recording", "section", "start_s", "end_s", "file", "contains_gap"])
             duration_statistics(metrics)
             write_trip_acceleration(self.output, metrics, payload.get("trip_window_seconds", 30),
-                                    payload.get("trip_restart_offset_seconds", 0.5))
+                                    payload.get("trip_restart_offset_seconds", 0.5), payload.get("arrival_window_seconds", 20),
+                                    [r.get("line") for r in payload["recordings"]])
             return {"sections": len(plan), "index": "reviewed_sections.csv",
                     "trips": charts,
                     "acceleration_csv": "trip_acceleration.csv",
                     "acceleration_plot": "trip_acceleration.png",
                     "deceleration_plot": "trip_deceleration.png",
+                    "global_statistics_plot": "global_statistics.png",
                     "window_seconds": payload.get("trip_window_seconds", 30),
                     "complete_windows": sum(r["status"] == "complete" for r in metrics)}
 
@@ -209,6 +279,11 @@ def make_server(output, review_dir, port=8765):
                 return self.json_response({"error": "Local origin required"}, 403)
             if urlsplit(self.path).path == "/api/reviews":
                 return self.json_response(store.read())
+            if urlsplit(self.path).path == "/api/recordings":
+                try:
+                    return self.json_response(store.recordings())
+                except (ValueError, OSError) as error:
+                    return self.json_response({"error": str(error)}, 400)
             self.path = "/report.html" if self.path == "/" else self.path
             super().do_GET()
 
@@ -223,6 +298,9 @@ def make_server(output, review_dir, port=8765):
                 if path == "/api/reviews":
                     body = json.loads(self.rfile.read(length))
                     return self.json_response(store.save(body["decisions"]))
+                if path == "/api/recordings":
+                    body = json.loads(self.rfile.read(length))
+                    return self.json_response(store.change_recording(body["recording"], body["action"]))
                 if path == "/api/export-sections":
                     return self.json_response(store.export_sections())
                 return self.json_response({"error": "Unknown endpoint"}, 404)

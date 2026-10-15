@@ -325,3 +325,110 @@ Tests cover known synthetic braking, filter response, gravity fallback,
 unresolved direction, Y/Yinv and opposite signs, minimum dwell and short pauses,
 brief disturbances, route counts, gap isolation and reviewed-boundary handling. Run results
 on the supplied recordings demonstrate execution, not detection accuracy.
+
+## Recording quality and archiving
+
+The report warns about timestamp gaps separately for the acceleration signal and
+uncalibrated stop detection signal. It lists each missing interval, estimated
+missing time (subtracting one normal sample interval per gap), and its percentage
+of that signal's observed recording span. The existing `gap_seconds` configuration
+sets the detection threshold. This detects interrupted sampling; it does not
+establish the cause or detect every kind of sensor failure.
+
+When serving a newly generated report, **Archive recording** moves its source
+folder from `data_test` to sibling `data_test_archive` and rebuilds the report and
+comparisons. **Archived recordings → Restore recording** reverses the move and
+rebuilds again. Reviews are retained, including after editing other recordings.
+A failed rebuild cancels the move. This requires the review server and access to
+the source directory; regenerate older reports once to add that directory metadata.
+Rebuilding can take a moment for a large dataset.
+
+If a recording is removed externally, its CSV review rows are now ignored with a
+console warning rather than failing with “Stop file references unknown recordings”.
+The input CSV is not changed; restore the source folder to reuse those reviews.
+`manifest.json` records ignored recording names. `--allow-empty` allows regeneration
+when all recordings are archived.
+
+## Comparing the same interstation run
+
+**Compare the same interstation run** overlays filtered acceleration for repeated
+complete runs on the same line and directed station pair. Select an interstation;
+all curves start at their validated restart, without stretching time to align
+arrivals. Runs with unknown departures, unknown arrivals, ambiguous station names
+or gaps are excluded. Each group needs at least two eligible runs.
+
+The legend identifies each recording and its running duration. Uncheck a recording
+to hide it, or click its name to inspect its individual run. Drag, scroll, enter
+time bounds, or use the zoom buttons to inspect the comparison. **First 30 s**
+focuses on departures; **Full runs** restores the full time range. Comparisons
+update when sections are exported after reviewing stops.
+
+## Global Statistics
+
+At the beginning of the report, paired boxplots pool maximum filtered deceleration
+magnitudes by metro line: the configured departure window (default restart +0.5
+to +30.5 seconds) and pre-arrival window (default last 20 seconds). All directions
+and interstations contribute. Each phase uses its own valid measurements, so a
+partial run can contribute one phase when that window is complete. Missing,
+incomplete, invalid, or no-deceleration windows do not contribute a zero.
+
+Dots show individual runs, boxes span the 25th–75th percentiles, the center line
+is the median, and whiskers extend to the most extreme observations within 1.5
+interquartile ranges. Every group displays its valid sample count, including zero.
+`global_statistics.csv` contains counts, exclusions and distribution summaries.
+The plots refresh on section export and when recordings are archived or restored.
+
+## Incremental processing and saved validations
+
+Analysis now saves each successful recording separately. On later runs it checks
+source content, the recording's own stop/event reviews, processing parameters,
+analysis code and dependency versions. Unchanged recordings reuse their filtered
+signals, detections, metrics and diagnostic plots. Adding a new recording only
+processes that recording; its position in the sorted report does not change the
+identity of previous results. Global plots/statistics and report pages are always
+rebuilt to include the current dataset.
+
+Stop decisions saved by the review server remain in `reviews/stops.json` and
+`reviews/stops.csv`. If `--stops` is omitted, the CLI automatically uses
+`--review-dir/stops.csv` when present (`reviews/stops.csv` by default). An explicit
+`--stops` still selects another file. With this default workflow, after adding
+recording folders simply rerun:
+
+```powershell
+python -m metro_braking --output results_reviewed
+```
+
+The console and report show how many recordings were reused or recomputed.
+Changing one recording's reviews or source data only invalidates that recording;
+changes to common processing parameters invalidate every affected recording.
+Rendering changes alone do not invalidate the analysis cache. Archived recordings
+keep their cache and reviews available for restoration. Raw source files stay in
+their original folders; reusing saved results does not move or delete them.
+
+The first run after this update must build the cache. Default storage is
+`OUTPUT/.recording_cache`; use `--cache-dir PATH` to share results between report
+folders. Snapshots are checked for missing/corrupt artifacts and rebuilt when
+necessary. `--reprocess` forces recalculation of all active recordings. Cache
+snapshots can be deleted to reclaim disk space; keep the review files to preserve
+validation decisions. `manifest.json` records the cache path and processing summary.
+
+## GitHub Pages boxplot demo
+
+`demo/` is a standalone snapshot containing only the departure/arrival boxplots,
+aggregate statistics CSV and a small snapshot summary. Raw recordings, filtered
+time series, individual run metrics and review controls are not published.
+
+To enable the site once, choose **Settings → Pages → Build and deployment →
+Source: GitHub Actions**. Then choose **Actions → Publish boxplot demo → Run
+workflow** on `main`. The workflow publishes only `demo/`; publication is manual
+so adding analysis code does not automatically replace the demo snapshot.
+The site URL is `https://ericcabrol.github.io/Metro_Codex/` after successful deployment.
+
+To update the snapshot after generating/reviewing a report:
+
+```powershell
+python scripts/build_pages_demo.py --report results_reviewed
+```
+
+Commit the updated files in `demo/`, push, and run the publication workflow again.
+For local inspection, serve that folder with `python -m http.server 8000 --directory demo`.
