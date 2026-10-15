@@ -134,6 +134,10 @@ review. `orientation_checks.csv` contains the individual checks.
 The report has browser stop-review controls: **Accept**, **Discard**, **Pending**,
 editable arrival/restart times and notes, a signal view that zooms around the selected
 candidate, and live accepted counts alongside the expected intermediate count.
+The Route and direction checks table uses `accepted_interior_stops` and refreshes
+its count, pending status and red mismatch highlighting immediately with each
+review edit or manual stop addition. Hover its count to see the original automatic
+detection count. Saved CSV decisions also populate the initial static table.
 All candidates start pending, including those passing automatic detection.
 You can inspect and accept a short candidate manually. Diagnostics remain
 available under an expandable section for each recording.

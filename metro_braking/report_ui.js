@@ -54,6 +54,16 @@
     const interior = accepted.filter(c => c.boundary === 'interior').length;
     const pending = own.filter(c => state(c).decision === 'pending').length;
     card.querySelector('.review-count').textContent = `${accepted.length} accepted (${interior} interior), ${pending} pending. Expected intermediate stops: ${recording.expected_intermediate_stops ?? 'unknown'}.${accepted.length && interior === recording.expected_intermediate_stops && !recording.gap_count && !accepted.some(c=>c.boundary==='gap edge') ? ' Station names inferred from stop order.' : ''}`;
+    const routeRow=document.querySelector(`.route-checks-table [data-route-recording="${data.recordings.indexOf(recording)}"]`);
+    if(routeRow){
+      const expected=recording.expected_intermediate_stops, known=Number.isFinite(expected);
+      const mismatch=known && interior!==expected;
+      routeRow.querySelector('[data-field="accepted_interior_stops"]').textContent=interior;
+      let summary=!known?'Expected count unavailable':mismatch?'Review required: intermediate count mismatch':'Matches expected intermediate count';
+      if(recording.gap_count || accepted.some(c=>c.boundary==='gap edge'))summary+='; gaps require review';
+      routeRow.querySelector('[data-field="stop_count_status"]').textContent=`${accepted.length} accepted (${interior} interior), ${pending} pending. ${summary}.`;
+      routeRow.classList.toggle('stop-count-mismatch',mismatch);
+    }
   }
   function draw(canvas, recording, selected, zoom, selection=null) {
     const width = Math.max(400, canvas.clientWidth), height = 300;

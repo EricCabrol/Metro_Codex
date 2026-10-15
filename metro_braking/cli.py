@@ -73,18 +73,31 @@ def report_contents(summaries, has_failures):
             f'<details><summary>Recordings and stop reviews</summary><ul>{recordings}</ul></details></nav>')
 
 
-def route_checks_table(summaries):
-    columns = ["recording", "expected_intermediate_stops", "detected_interior_stops",
+def route_checks_table(summaries, candidates=(), decisions=None):
+    columns = ["recording", "expected_intermediate_stops", "accepted_interior_stops",
                "short_dwell_candidates", "stop_count_status", "orientation_status"]
+    decisions = decisions or {}
     rows = []
     for i, summary in enumerate(summaries):
+        own = [c for c in candidates if c["recording"] == summary["recording"]]
+        accepted = [c for c in own if decisions.get(c["id"], {}).get("decision") == "accepted"]
+        interior = sum(c["boundary"] == "interior" for c in accepted)
+        pending = sum(decisions.get(c["id"], {}).get("decision", "pending") == "pending" for c in own)
         expected = summary.get("expected_intermediate_stops")
-        detected = summary.get("detected_interior_stops")
-        mismatch = pd.notna(expected) and pd.notna(detected) and expected != detected
+        known = pd.notna(expected)
+        mismatch = known and expected != interior
+        status = ("Expected count unavailable" if not known else
+                  "Review required: intermediate count mismatch" if mismatch else "Matches expected intermediate count")
+        if summary.get("gap_count") or any(c["boundary"] == "gap edge" for c in accepted):
+            status += "; gaps require review"
+        values = dict(summary, expected_intermediate_stops=expected if known else "unknown", accepted_interior_stops=interior,
+                      stop_count_status=f"{len(accepted)} accepted ({interior} interior), {pending} pending. {status}.")
         cells = [f'<td><a href="#stop-review-{i}">{html.escape(display_recording_name(summary["recording"]))}</a></td>']
-        cells.extend(f'<td>{html.escape(str(summary.get(column, "")))}</td>' for column in columns[1:])
+        for column in columns[1:]:
+            title = f' title="Automatic interior detections: {summary.get("detected_interior_stops", 0)}"' if column == "accepted_interior_stops" else ""
+            cells.append(f'<td data-field="{column}"{title}>{html.escape(str(values.get(column, "")))}</td>')
         row_class = ' class="stop-count-mismatch"' if mismatch else ""
-        rows.append(f'<tr{row_class}>{"".join(cells)}</tr>')
+        rows.append(f'<tr data-route-recording="{i}"{row_class}>{"".join(cells)}</tr>')
     headings = "".join(f'<th scope="col">{column}</th>' for column in columns)
     return f'<table class="route-checks-table"><thead><tr>{headings}</tr></thead><tbody>{"".join(rows)}</tbody></table>'
 
@@ -108,6 +121,10 @@ def continuity_notice(summary):
 
 def report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trips=None, stops=None, data_directory=None, processing=None):
     event_frame = pd.DataFrame(events)
+    payload = report_payload(summaries, quiet, rejected_dwells, config, series)
+    initial = initial_decisions_from_rows(payload, stops)
+    payload['candidates'] = review_candidates(payload, initial)
+    payload['initial_decisions'] = initial
     cells = []
     for i, summary in enumerate(summaries):
         own = [e for e in events if e["recording"] == summary["recording"]]
@@ -158,7 +175,7 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     text += '<p>Red shading: expected braking; blue: opposite-sign events retained when direction is uncertain; green: qualifying dwell candidates; orange: short quiet intervals excluded from counts; purple dashed lines: original SensorLogger Stop annotations. Stops use uncalibrated XYZ variation (green trace) and longitudinal distance from a quiet-window baseline (gray trace), with a trailing one-second window. Disturbances of up to 1.5 seconds may be bridged; recording gaps never are. At least 90% of each candidate must be quiet. Steady motion can still produce a false positive.</p>'
     text += '<p>Expected arrivals exclude the origin and include the destination. Intermediate stops exclude both endpoints. The count check compares interior candidates with intermediate stations; endpoint dwells may be truncated, and gaps or passenger movement may hide stops. Accepted stops with a matching count are assigned station names in route order, as checked during human review.</p>'
     text += '<p>Use Accept, Discard or Pending below to review station stops. Arrival and restart times are editable. Rolling-window onset can lag the actual arrival. Download reviewed stops CSV exports decisions without manual editing. For automatic disk saves and section exports, run <code>python -m metro_braking --serve</code> and open the printed local URL. Braking-event labels remain a separate workflow.</p>'
-    text += '<h2 id="route-checks">Route and direction checks</h2>' + route_checks_table(summaries)
+    text += '<h2 id="route-checks">Route and direction checks</h2>' + route_checks_table(summaries, payload['candidates'], initial)
     text += '<p>Full sampling and axis details: <a href="inventory.csv">inventory.csv</a>. Direction evidence: <a href="orientation_checks.csv">orientation_checks.csv</a>.</p>'
     text += '<p>Station-order reference (version ' + CATALOG['updated_on'] + '): ' + ', '.join(f'<a href="{line["source"]}">Transilien line {number}</a>' for number, line in CATALOG["lines"].items()) + '. All 16 Paris metro lines are covered, including branches and directional loops. Known recent opening dates are applied to the recording date; temporary closures and special services are not modeled.</p>'
     text += '<h2 id="event-comparison">Exploratory comparison</h2>' + comparison
@@ -167,10 +184,6 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
         text += '<img src="comparison.png" alt="Candidate intensity and jerk comparison">'
     if failures:
         text += '<h2 id="failed-recordings">Failed recordings</h2><pre>' + html.escape(json.dumps(failures, indent=2)) + '</pre>'
-    payload = report_payload(summaries, quiet, rejected_dwells, config, series)
-    initial = initial_decisions_from_rows(payload, stops)
-    payload['candidates'] = review_candidates(payload, initial)
-    payload['initial_decisions'] = initial
     if data_directory is not None:
         payload["data_directory"] = str(data_directory)
     payload["trips"] = trips or []
