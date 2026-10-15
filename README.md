@@ -27,12 +27,26 @@ self-contained locally (PNG images beside the HTML; no network dependencies).
 
 ## Data provenance
 
-`data_test` is an unchanged copy of **only** `Metro/data_test`: 11 recordings
-from lines 4, 6, 8 and 13. The copied legacy `timestamps*.txt` files are retained
-as source artifacts but are never read by the pipeline. Original SensorLogger
-`Stop` annotations are displayed as visual references, not detection targets.
-`manifest.json` records SHA-256 hashes, configuration, reviews, package versions,
-and any failures. Data and generated results are ignored by Git.
+`data_test/` contains SensorLogger recordings copied from `Metro/data_test`.
+Git retains the inputs used by the analysis: `Accelerometer.csv`,
+`AccelerometerUncalibrated.csv`, `Metadata.csv` and `Annotation.csv`.
+Original SensorLogger `Stop` annotations are displayed as visual references,
+not detection targets. Unused magnetometer exports, `TotalAcceleration.csv`
+and legacy `timestamps*.txt` files are ignored; local copies may be retained.
+
+Generated `results/` and `results_reviewed/` reports, recording caches and
+archived source folders are ignored by Git. Regenerate a reviewed report with
+`python -m metro_braking --output results_reviewed`; saved decisions in
+`reviews/` remain tracked and are loaded automatically. The published snapshot
+in `demo/` remains tracked for GitHub Pages.
+`manifest.json` in the output records SHA-256 hashes, configuration, reviews,
+package versions and any failures.
+
+When first pulling the cleanup that removes previously tracked outputs and unused
+sensor files, Git can remove unchanged copies from the working directory.
+Copy any of those files you want to retain outside the checkout before pulling;
+then restore them locally (they will be ignored). Reviewed reports can instead
+be regenerated with the command above.
 
 ## Method
 
