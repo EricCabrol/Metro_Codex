@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Compare maximum metro deceleration at departure and arrival using reviewed recordings from Paris metro lines.">
+  <title>Metro braking · Global Statistics</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="demo.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Paris metro · Recording analysis</p>
+      <h1>Global Statistics</h1>
+      <p class="intro">Maximum deceleration at departure and arrival, compared across metro lines.</p>
+      <a class="repository" href="https://github.com/EricCabrol/Metro_Codex">View the project <span aria-hidden="true">↗</span></a>
+    </header>
+    <section class="chart-card" aria-label="Deceleration boxplots by metro line">
+      <div class="windows">
+        <div class="window departure"><span class="dot" aria-hidden="true"></span><div><strong>After restart</strong><p id="departure-window">Validated departure window</p></div></div>
+        <div class="window arrival"><span class="dot" aria-hidden="true"></span><div><strong>Before arrival</strong><p id="arrival-window">Validated pre-arrival window</p></div></div>
+      </div>
+      <figure>
+        <div class="chart-scroll" role="region" aria-label="Scrollable boxplot chart" tabindex="0">
+          <a href="global_statistics.png" target="_blank" rel="noopener" aria-label="Open boxplots at full resolution"><img src="global_statistics.png" width="1440" height="896" alt="Paired orange departure and purple arrival boxplots for lines L4, L6, L8 and L13. Each dot is a valid run; sample counts are shown above each group."></a>
+        </div>
+        <figcaption>Swipe sideways on smaller screens, or tap the chart to open the full-size image.</figcaption>
+      </figure>
+    </section>
+    <section class="reading" aria-labelledby="reading-title">
+      <div><h2 id="reading-title">Reading the chart</h2><p>Each dot represents one valid run. Boxes span the 25th–75th percentiles; the central line is the median. Whiskers extend to observations within 1.5 interquartile ranges. <strong>n</strong> is the number of measurements.</p></div>
+      <div><h2>From filtered signals</h2><p>Measurements use manually reviewed station-stop boundaries. Each window contributes independently. Missing, incomplete or no-deceleration windows are excluded. All directions and interstations are pooled by line; small samples remain visible.</p></div>
+    </section>
+    <footer><p>A snapshot of the reviewed recordings. <span id="snapshot-description"></span></p><a href="global_statistics.csv" download>Download statistics CSV</a></footer>
+  </main>
+</body>
+</html>

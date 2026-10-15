@@ -411,3 +411,24 @@ folders. Snapshots are checked for missing/corrupt artifacts and rebuilt when
 necessary. `--reprocess` forces recalculation of all active recordings. Cache
 snapshots can be deleted to reclaim disk space; keep the review files to preserve
 validation decisions. `manifest.json` records the cache path and processing summary.
+
+## GitHub Pages boxplot demo
+
+`demo/` is a standalone snapshot containing only the departure/arrival boxplots,
+aggregate statistics CSV and a small snapshot summary. Raw recordings, filtered
+time series, individual run metrics and review controls are not published.
+
+To enable the site once, choose **Settings → Pages → Build and deployment →
+Source: GitHub Actions**. Then choose **Actions → Publish boxplot demo → Run
+workflow** on `main`. The workflow publishes only `demo/`; publication is manual
+so adding analysis code does not automatically replace the demo snapshot.
+The site URL is `https://ericcabrol.github.io/Metro_Codex/` after successful deployment.
+
+To update the snapshot after generating/reviewing a report:
+
+```powershell
+python scripts/build_pages_demo.py --report results_reviewed
+```
+
+Commit the updated files in `demo/`, push, and run the publication workflow again.
+For local inspection, serve that folder with `python -m http.server 8000 --directory demo`.
