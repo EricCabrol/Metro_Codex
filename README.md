@@ -199,6 +199,24 @@ warnings are diagnostics for review, not automatic rejection or reassignment.
 Warnings are visible in collapsed chart headings and the contents navigation.
 Statistics and station labels are rebuilt from all current saved decisions on export.
 
+To restore a missed stop, click **Add manual stop** in its recording's review
+panel. Drag across the signal to fill arrival/restart timestamps, or type both
+values (seconds since recording start). Check the boundaries and choose
+**Add and accept stop**. The new row is marked manual, sorted by time, and counted
+immediately; its times and note remain editable and **Discard** excludes it.
+Manual intervals must have positive duration, lie inside the recording and not
+overlap another accepted stop. **Cancel** saves nothing.
+
+With the review server, manual stops persist in `reviews/stops.json` and
+`reviews/stops.csv`; browser-only mode saves them in local storage and the
+Download CSV export. Manual IDs survive edits and analysis reruns. CSV rows
+include `manual=true`, `candidate_id`, `time_s` and `restart_s`; preserve those
+columns when reprocessing with `--stops`. Regenerated reports also embed manual
+stop definitions, so they remain visible in static reports without the old
+browser cache. Export sections after editing to refresh station names, extrema,
+pre-arrival braking and duration warnings. Adding a stop never changes the
+signal-processing thresholds or automatically validates other candidates.
+
 The report also measures **maximum pre-arrival deceleration** independently of
 the departure metrics: the positive magnitude of the most negative filtered
 forward acceleration in `[next accepted arrival - 20 s, next accepted arrival)`.

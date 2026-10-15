@@ -3,17 +3,19 @@ import numpy as np
 import pandas as pd
 
 from .analysis import split_sections
+from .manual_stops import is_manual, manual_candidate
 from .routes import route_from_name, display_recording_name
 from .trip_acceleration import trip_acceleration, trip_chart, resolve_restart, arrival_deceleration
 
 
-def build_runs(recording, signal, stop_rows, candidates, config):
+def build_runs(recording, signal, stop_rows, candidates, config, recording_info=None):
     if stop_rows.empty:
         return [], []
     accepted = stop_rows.loc[~stop_rows.accepted.astype(str).str.lower().isin(["false", "0", "no"])].copy()
     accepted = accepted.sort_values("time_s")
     if accepted.empty:
         return [], []
+    recording_info = recording_info or {}
     route = route_from_name(recording)
     stations = route.get("route_stations", "").split(" → ")
     own_candidates = [c for c in candidates if c["recording"] == recording]
@@ -24,6 +26,10 @@ def build_runs(recording, signal, stop_rows, candidates, config):
         if not matches:
             matches = [c for c in own_candidates if np.isclose(c["start_s"], row["time_s"], atol=0.051, rtol=0)]
         candidate = matches[0] if len(matches) == 1 else {}
+        if is_manual(row.get('manual')):
+            candidate = manual_candidate(str(key or ''), recording, float(row['time_s']), float(row['restart_s']),
+                                         float(recording_info.get("start_s", signal.seconds_elapsed.min())),
+                                         float(recording_info.get("end_s", signal.seconds_elapsed.max())))
         boundary_rows.append(dict(row, candidate=candidate, restart=resolve_restart(accepted, row["time_s"], own_candidates)))
     interior = [r for r in boundary_rows if r["candidate"].get("boundary") == "interior"]
     aligned = (route.get("route_status") == "resolved" and len(interior) == len(stations)-2

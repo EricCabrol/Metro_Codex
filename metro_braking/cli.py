@@ -16,6 +16,7 @@ from .routes import route_from_name, compare_stop_count, CATALOG, display_record
 from .review import report_payload, serve_report, candidate_id
 from .trip_acceleration import write_trip_acceleration
 from .runs import build_runs, duration_statistics
+from .manual_stops import initial_decisions_from_rows, review_candidates
 
 
 def validate_config(config):
@@ -110,7 +111,7 @@ def report_contents(summaries, has_failures):
             f'<details><summary>Recordings and stop reviews</summary><ul>{recordings}</ul></details></nav>')
 
 
-def report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trips=None):
+def report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trips=None, stops=None):
     inventory = pd.DataFrame(summaries)
     event_frame = pd.DataFrame(events)
     cells = []
@@ -169,6 +170,9 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     if failures:
         text += '<h2 id="failed-recordings">Failed recordings</h2><pre>' + html.escape(json.dumps(failures, indent=2)) + '</pre>'
     payload = report_payload(summaries, quiet, rejected_dwells, config, series)
+    initial = initial_decisions_from_rows(payload, stops)
+    payload['candidates'] = review_candidates(payload, initial)
+    payload['initial_decisions'] = initial
     payload["trips"] = trips or []
     for recording in payload["recordings"]:
         recording["display_name"] = display_recording_name(recording["recording"])
@@ -266,7 +270,7 @@ def main():
             if not stops.empty:
                 own_stops = stops[stops.recording == folder.name]
                 own_metrics, own_charts = build_runs(folder.name, signal, own_stops,
-                    [dict(q, id=candidate_id(q)) for q in intervals + [q for d in stop_diagnostics for q in d["rejected_dwells"]]], config)
+                    [dict(q, id=candidate_id(q)) for q in intervals + [q for d in stop_diagnostics for q in d["rejected_dwells"]]], config, summary)
                 trip_metrics.extend(own_metrics)
                 trip_charts.extend(own_charts)
                 for number, start, end, section in split_sections(signal, own_stops):
@@ -310,7 +314,7 @@ def main():
                     "versions": {"numpy": np.__version__, "pandas": pd.__version__,
                                  "scipy": __import__("scipy").__version__, "matplotlib": matplotlib.__version__}}
     (output / "manifest.json").write_text(json.dumps(manifest_out, indent=2), encoding="utf-8")
-    report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trip_charts)
+    report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trip_charts, stops)
     print(f"Finished: {len(summaries)} recordings, {len(events)} events, {len(failures)} failures. {output / 'report.html'}")
     if failures:
         raise SystemExit(1)

@@ -12,6 +12,7 @@ import pandas as pd
 from .analysis import split_sections
 from .trip_acceleration import write_trip_acceleration
 from .runs import build_runs, duration_statistics
+from .manual_stops import review_candidates
 
 
 def candidate_id(row):
@@ -32,7 +33,7 @@ def report_payload(summaries, quiet, rejected, config, series):
 def validate_decisions(payload, decisions):
     if not isinstance(decisions, dict):
         raise ValueError("decisions must be an object")
-    candidates = {c["id"]: c for c in payload["candidates"]}
+    candidates = {c["id"]: c for c in review_candidates(payload, decisions)}
     recordings = {r["recording"]: r for r in payload["recordings"]}
     validated = {}
     for key, value in decisions.items():
@@ -56,6 +57,8 @@ def validate_decisions(payload, decisions):
         if not isinstance(note, str) or len(note) > 2000:
             raise ValueError("Note must be text of at most 2000 characters")
         validated[key] = {"decision": decision, "time_s": time, "restart_s": restart, "note": note}
+        if candidates[key].get("manual"):
+            validated[key].update(manual=True, recording=candidates[key]["recording"])
     accepted_times = set()
     for key, value in validated.items():
         if value["decision"] == "accepted":
@@ -63,17 +66,21 @@ def validate_decisions(payload, decisions):
             if identity in accepted_times:
                 raise ValueError("Accepted stops must have distinct arrival times")
             accepted_times.add(identity)
+    for name in recordings:
+        accepted = sorted((v for k,v in validated.items() if v['decision']=='accepted' and candidates[k]['recording']==name), key=lambda v:v['time_s'])
+        if any(a['restart_s'] >= b['time_s'] for a,b in zip(accepted,accepted[1:])):
+            raise ValueError('Accepted stop intervals must not overlap')
     return validated
 
 
 def review_rows(payload, decisions):
     rows = []
-    for candidate in payload["candidates"]:
+    for candidate in review_candidates(payload, decisions):
         value = decisions.get(candidate["id"])
         if value and value["decision"] != "pending":
             rows.append({"recording": candidate["recording"], "time_s": value["time_s"],
                          "restart_s": value.get("restart_s", candidate["end_s"]), "candidate_id": candidate["id"],
-                         "accepted": value["decision"] == "accepted", "note": value["note"]})
+                         "accepted": value["decision"] == "accepted", "note": value["note"], "manual": bool(candidate.get("manual"))})
     return rows
 
 
@@ -88,9 +95,14 @@ class ReviewStore:
 
     def read(self):
         stored = json.loads(self.path.read_text(encoding="utf-8")) if self.path.exists() else {"version": 1, "decisions": {}}
-        ids = {c["id"] for c in self.payload()["candidates"]}
-        current = {k: v for k, v in stored["decisions"].items() if k in ids}
-        return {"version": 1, "decisions": current, "unmatched_decisions": len(stored["decisions"]) - len(current)}
+        payload = self.payload()
+        values = dict(payload.get('initial_decisions', {}))
+        values.update(stored['decisions'])
+        names = {r['recording'] for r in payload['recordings']}
+        ids = {c['id'] for c in payload['candidates']}
+        current = {k:v for k,v in values.items() if k in ids or isinstance(v,dict) and v.get('manual') is True and v.get('recording') in names}
+        review_candidates(payload, current)  # Validate manual definitions before exposing them.
+        return {"version": 1, "decisions": current, "unmatched_decisions": len(values) - len(current)}
 
     def save(self, decisions):
         with self.lock:
@@ -104,7 +116,7 @@ class ReviewStore:
             temporary = self.path.with_suffix(".tmp")
             temporary.write_text(json.dumps({"version": 1, "decisions": previous}, indent=2), encoding="utf-8")
             temporary.replace(self.path)
-            self._csv(self.review_dir / "stops.csv", review_rows(payload, current), ["recording", "time_s", "restart_s", "candidate_id", "accepted", "note"])
+            self._csv(self.review_dir / "stops.csv", review_rows(payload, current), ["recording", "time_s", "restart_s", "candidate_id", "accepted", "note", "manual"])
             return self.read()
 
     @staticmethod
@@ -119,6 +131,7 @@ class ReviewStore:
             payload = self.payload()
             decisions = validate_decisions(payload, self.read()["decisions"])
             rows = review_rows(payload, decisions)
+            candidates = review_candidates(payload, decisions)
             generation = hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest()[:12]
             plan = []
             metrics = []
@@ -128,7 +141,7 @@ class ReviewStore:
                 if not accepted:
                     continue
                 signal = pd.read_csv(self.output / recording["signal_file"], float_precision="round_trip")
-                own_metrics, own_charts = build_runs(recording["recording"], signal, pd.DataFrame(accepted), payload["candidates"], payload)
+                own_metrics, own_charts = build_runs(recording["recording"], signal, pd.DataFrame(accepted), candidates, payload, recording)
                 metrics.extend(own_metrics)
                 charts.extend(own_charts)
                 for number, start, end, section in split_sections(signal, pd.DataFrame(accepted)):
