@@ -26,6 +26,9 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
   const status=page.locator('#review-save-status'),four=page.locator('[data-candidate-id="four"]'),five=page.locator('[data-candidate-id="five"]');
   await status.filter({hasText:'Disk save connected'}).waitFor();
   const routeRow=page.locator('.route-checks-table [data-route-recording="0"]'),acceptedCount=routeRow.locator('[data-field="accepted_interior_stops"]');
+  const reviewStatus=routeRow.locator('[data-field="review_status"]');
+  assert.equal(await reviewStatus.textContent(),'Pending decisions (2)');
+  assert.equal(await page.locator('.stop-review .review-badge').textContent(),'Pending decisions (2)');
   assert.equal(await acceptedCount.textContent(),'0');
   assert((await routeRow.getAttribute('class')).includes('stop-count-mismatch'));
   assert((await routeRow.textContent()).includes('2 pending'));
@@ -48,6 +51,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
   assert.deepEqual(await pixel(276),[209,234,216]);
   assert.equal(await acceptedCount.textContent(),'1');assert(!(await routeRow.getAttribute('class')).includes('stop-count-mismatch'));
   assert((await routeRow.textContent()).includes('1 pending'));
+  assert.equal(await reviewStatus.textContent(),'Pending decisions (1)');
   assert.deepEqual(await pixel(290),[209,234,216]); // Pending stop 5 cannot hide the edited accepted interval.
   await five.getByRole('button',{name:'Discard',exact:true}).click();await status.filter({hasText:'Saved to reviews'}).waitFor();
   assert.deepEqual(await pixel(290),[209,234,216]); // Discarded stop 5 cannot paint over it either.
@@ -60,6 +64,12 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
   assert.deepEqual(await pixel(259),[209,234,216]);
   assert.equal(await acceptedCount.textContent(),'1');
   assert((await routeRow.textContent()).includes('0 pending'));
+  assert.equal(await reviewStatus.textContent(),'Review complete');
+  assert.equal(await page.locator('.stop-review .review-badge').textContent(),'Review complete');
+  await five.getByRole('button',{name:'Pending',exact:true}).click();await status.filter({hasText:'Saved to reviews'}).waitFor();
+  assert.equal(await reviewStatus.textContent(),'Pending decisions (1)');
+  await five.getByRole('button',{name:'Discard',exact:true}).click();await status.filter({hasText:'Saved to reviews'}).waitFor();
+  assert.equal(await reviewStatus.textContent(),'Review complete');
   await page.getByRole('button',{name:'Add manual stop',exact:true}).click();
   await page.getByLabel('Manual arrival time',{exact:true}).fill('100');await page.getByLabel('Manual restart time',{exact:true}).fill('110');
   await page.getByRole('button',{name:'Add and accept stop',exact:true}).click();await status.filter({hasText:'Saved to reviews'}).waitFor();

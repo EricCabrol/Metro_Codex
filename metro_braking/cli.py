@@ -55,10 +55,7 @@ def report_contents(summaries, has_failures):
     links = [("global-statistics", "Global Statistics"),
              ("report-guide", "Reading the report"),
              ("route-checks", "Route and direction checks"),
-             ("event-comparison", "Exploratory comparison"),
-             ("restart-extrema", "Acceleration and deceleration after validated restarts"),
              ("run-comparisons", "Compare the same interstation run"),
-             ("trip-signals", "Filtered signal for each validated interstation run"),
              ("archived-recordings", "Archived recordings")]
     items = ''.join(f'<li><a href="#{target}">{label}</a></li>' for target, label in links)
     if has_failures:
@@ -68,13 +65,14 @@ def report_contents(summaries, has_failures):
         f'<ul><li><a href="#stop-review-{i}">Review station stops</a></li>'
         f'<li><a href="#diagnostics-{i}">Detection tables and full diagnostic plots</a></li></ul></li>'
         for i, summary in enumerate(summaries))
+    items += '<li><a href="#trip-signals">Filtered signal for each validated interstation run</a></li>'
     return ('<nav id="report-contents" aria-label="Table of contents"><h2>Contents</h2>'
             f'<ul>{items}</ul><details><summary>Interstation runs</summary><div id="run-contents"></div></details>'
             f'<details><summary>Recordings and stop reviews</summary><ul>{recordings}</ul></details></nav>')
 
 
 def route_checks_table(summaries, candidates=(), decisions=None):
-    columns = ["recording", "expected_intermediate_stops", "accepted_interior_stops",
+    columns = ["recording", "review_status", "expected_intermediate_stops", "accepted_interior_stops",
                "short_dwell_candidates", "stop_count_status", "orientation_status"]
     decisions = decisions or {}
     rows = []
@@ -90,12 +88,13 @@ def route_checks_table(summaries, candidates=(), decisions=None):
                   "Review required: intermediate count mismatch" if mismatch else "Matches expected intermediate count")
         if summary.get("gap_count") or any(c["boundary"] == "gap edge" for c in accepted):
             status += "; gaps require review"
-        values = dict(summary, expected_intermediate_stops=expected if known else "unknown", accepted_interior_stops=interior,
+        values = dict(summary, review_status=f"Pending decisions ({pending})" if pending else "Review complete", expected_intermediate_stops=expected if known else "unknown", accepted_interior_stops=interior,
                       stop_count_status=f"{len(accepted)} accepted ({interior} interior), {pending} pending. {status}.")
         cells = [f'<td><a href="#stop-review-{i}">{html.escape(display_recording_name(summary["recording"]))}</a></td>']
         for column in columns[1:]:
             title = f' title="Automatic interior detections: {summary.get("detected_interior_stops", 0)}"' if column == "accepted_interior_stops" else ""
             cells.append(f'<td data-field="{column}"{title}>{html.escape(str(values.get(column, "")))}</td>')
+        cells[1] = f'<td data-field="review_status"><span class="review-badge {"review-pending" if pending else "review-complete"}">{values["review_status"]}</span></td>'
         row_class = ' class="stop-count-mismatch"' if mismatch else ""
         rows.append(f'<tr data-route-recording="{i}"{row_class}>{"".join(cells)}</tr>')
     headings = "".join(f'<th scope="col">{column}</th>' for column in columns)
@@ -178,10 +177,6 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     text += '<h2 id="route-checks">Route and direction checks</h2>' + route_checks_table(summaries, payload['candidates'], initial)
     text += '<p>Full sampling and axis details: <a href="inventory.csv">inventory.csv</a>. Direction evidence: <a href="orientation_checks.csv">orientation_checks.csv</a>.</p>'
     text += '<p>Station-order reference (version ' + CATALOG['updated_on'] + '): ' + ', '.join(f'<a href="{line["source"]}">Transilien line {number}</a>' for number, line in CATALOG["lines"].items()) + '. All 16 Paris metro lines are covered, including branches and directional loops. Known recent opening dates are applied to the recording date; temporary closures and special services are not modeled.</p>'
-    text += '<h2 id="event-comparison">Exploratory comparison</h2>' + comparison
-    text += f'<h2 id="restart-extrema">Acceleration and deceleration after validated restarts</h2><p>Independent maximum signed filtered forward acceleration and maximum deceleration magnitude over {config.get("trip_window_seconds", 30):g} seconds starting {config.get("trip_restart_offset_seconds", 0.5):g} seconds after each validated restart (end of the accepted stop). Both use the same window; station dwell is excluded. Short trips and windows with missing samples are excluded. No negative acceleration is recorded as no_deceleration. Inspect orientation flags before interpretation.</p><p><a href="trip_acceleration.csv">Download interstation run acceleration and deceleration CSV</a></p><img src="trip_acceleration.png" alt="Maximum acceleration after validated restarts"><img src="trip_deceleration.png" alt="Maximum deceleration after validated restarts">'
-    if events:
-        text += '<img src="comparison.png" alt="Candidate intensity and jerk comparison">'
     if failures:
         text += '<h2 id="failed-recordings">Failed recordings</h2><pre>' + html.escape(json.dumps(failures, indent=2)) + '</pre>'
     if data_directory is not None:
@@ -192,10 +187,11 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     for recording in payload["recordings"]:
         recording["display_name"] = display_recording_name(recording["recording"])
     text += '<section id="run-comparisons"><h2>Compare the same interstation run</h2><p>Overlay complete validated runs on the same line and directed station pair. Time zero is the validated restart; time is not stretched to match arrivals. Partial runs and runs without confirmed station assignments are excluded. Use the checkboxes to hide individual signals, drag or scroll to zoom, and click a recording name to inspect its run.</p><div id="run-comparison-charts"></div></section>'
-    text += '<section id="trip-signals"><h2>Filtered signal for each validated interstation run</h2><p>Blue: departure-window maximum acceleration. Orange: departure-window maximum deceleration. Purple: maximum deceleration in the configured window before the next validated arrival (20 seconds by default). Blue and purple shading identify the two measurement windows; a purple vertical line marks the next arrival. If arrival is not identified, no pre-arrival measurement is inferred from the recording end. Drag across a chart or use the mouse wheel to zoom in time; exact time bounds and reset buttons are also available.</p><p>Station names inferred from stop order when accepted stop counts match the route. Partial edge runs are identified explicitly. Running durations exclude station dwell; warnings compare the same directed interstation on the same line, using the sample standard deviation and at least three complete runs. Fewer samples are marked insufficient. The rule is a diagnostic, not proof of an incorrect station assignment.</p><p><a href="run_durations.csv">Download running-duration statistics</a></p><div id="trip-charts"></div></section>'
+    text += ''.join(cells)
+    text += '<section id="trip-signals"><h2>Filtered signal for each validated interstation run</h2><p>Blue: departure-window maximum acceleration. Orange: departure-window maximum deceleration. Purple: maximum deceleration in the configured window before the next validated arrival (20 seconds by default). Blue and purple shading identify the two measurement windows; a purple vertical line marks the next arrival. If arrival is not identified, no pre-arrival measurement is inferred from the recording end. Drag across a chart or use the mouse wheel to zoom in time; exact time bounds and reset buttons are also available.</p><p>Station names inferred from stop order when accepted stop counts match the route. Partial edge runs are identified explicitly. Running durations exclude station dwell; warnings compare the same directed interstation on the same line, using the sample standard deviation and at least three complete runs. Fewer samples are marked insufficient. The rule is a diagnostic, not proof of an incorrect station assignment.</p><p><a href="run_durations.csv">Download running-duration statistics</a> · <a href="trip_acceleration.csv">Download interstation run acceleration and deceleration CSV</a></p><div id="trip-charts"></div></section>'
     encoded = json.dumps(payload, allow_nan=False, default=lambda v: v.item(), separators=(",", ":"))
     (output / "report_data.json").write_text(encoded, encoding="utf-8")
-    text += ''.join(cells) + '<script id="review-data" type="application/json">' + encoded.replace("<", "\\u003c") + '</script><script src="run_comparison.js"></script><script src="trip_charts.js"></script><script src="report_ui.js"></script></html>'
+    text += '<script id="review-data" type="application/json">' + encoded.replace("<", "\\u003c") + '</script><script src="run_comparison.js"></script><script src="trip_charts.js"></script><script src="report_ui.js"></script></html>'
     for asset in ("report_ui.js", "report_ui.css", "run_comparison.js", "run_comparison.css", "trip_charts.js"):
         shutil.copyfile(Path(__file__).with_name(asset), output / asset)
     (output / "report.html").write_text(text, encoding="utf-8")

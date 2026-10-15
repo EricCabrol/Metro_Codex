@@ -53,7 +53,25 @@
     const accepted = own.filter(c => state(c).decision === 'accepted');
     const interior = accepted.filter(c => c.boundary === 'interior').length;
     const pending = own.filter(c => state(c).decision === 'pending').length;
+    let badge=card.querySelector('.review-badge');
+    if(!badge){badge=element('p', '', 'review-badge');card.querySelector('.review-count').before(badge);}
+    const reviewLabel=pending ? `Pending decisions (${pending})` : 'Review complete';
+    badge.textContent=reviewLabel;
+    badge.className='review-badge '+(pending?'review-pending':'review-complete');
     card.querySelector('.review-count').textContent = `${accepted.length} accepted (${interior} interior), ${pending} pending. Expected intermediate stops: ${recording.expected_intermediate_stops ?? 'unknown'}.${accepted.length && interior === recording.expected_intermediate_stops && !recording.gap_count && !accepted.some(c=>c.boundary==='gap edge') ? ' Station names inferred from stop order.' : ''}`;
+    const routeRow=document.querySelector(`.route-checks-table [data-route-recording="${data.recordings.indexOf(recording)}"]`);
+    if(routeRow){
+      const reviewCell=routeRow.querySelector('[data-field="review_status"]');
+      if(reviewCell){const label=element('span',reviewLabel,badge.className);reviewCell.replaceChildren(label);}
+
+      const expected=recording.expected_intermediate_stops, known=Number.isFinite(expected);
+      const mismatch=known && interior!==expected;
+      routeRow.querySelector('[data-field="accepted_interior_stops"]').textContent=interior;
+      let summary=!known?'Expected count unavailable':mismatch?'Review required: intermediate count mismatch':'Matches expected intermediate count';
+      if(recording.gap_count || accepted.some(c=>c.boundary==='gap edge'))summary+='; gaps require review';
+      routeRow.querySelector('[data-field="stop_count_status"]').textContent=`${accepted.length} accepted (${interior} interior), ${pending} pending. ${summary}.`;
+      routeRow.classList.toggle('stop-count-mismatch',mismatch);
+    }
   }
   function draw(canvas, recording, selected, zoom, selection=null) {
     const width = Math.max(400, canvas.clientWidth), height = 300;
@@ -61,18 +79,23 @@
     canvas.width = width * scale; canvas.height = height * scale;
     const ctx = canvas.getContext('2d'); ctx.scale(scale, scale);
     const left = 55, right = width - 15, top = 20, bottom = 265;
-    const span = selected ? selected.end_s - selected.start_s : 0;
-    const lo = selected && zoom ? Math.max(recording.start_s, selected.start_s - 20) : recording.start_s;
-    const hi = selected && zoom ? Math.min(recording.end_s, selected.end_s + 20) : recording.end_s;
+    const selectedState = selected ? state(selected) : null;
+    const lo = selectedState && zoom ? Math.max(recording.start_s, selectedState.time_s - 20) : recording.start_s;
+    const hi = selectedState && zoom ? Math.min(recording.end_s, selectedState.restart_s + 20) : recording.end_s;
     canvas.dataset.viewStart = lo; canvas.dataset.viewEnd = hi;
     const x = t => left + (t - lo) / (hi - lo) * (right - left);
     const traces = data.series[recording.recording] || {};
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height);
-    for (const c of data.candidates.filter(c => c.recording === recording.recording)) {
-      if (c.end_s < lo || c.start_s > hi) continue;
-      const decision = state(c).decision;
+    // Accepted edited intervals stay visible over discarded/pending detections
+    // that they may replace when the user combines a split station stop.
+    const priority = {discarded:0, pending:1, accepted:2};
+    const intervals = data.candidates.filter(c => c.recording === recording.recording)
+      .sort((a,b) => priority[state(a).decision] - priority[state(b).decision]);
+    for (const c of intervals) {
+      const {time_s:start, restart_s:end, decision} = state(c);
+      if (end < lo || start > hi) continue;
       ctx.fillStyle = decision === 'accepted' ? '#d1ead8' : decision === 'discarded' ? '#f4dddd' : '#fff0c2';
-      ctx.fillRect(x(Math.max(lo,c.start_s)), top, x(Math.min(hi,c.end_s)) - x(Math.max(lo,c.start_s)), bottom - top);
+      ctx.fillRect(x(Math.max(lo,start)), top, x(Math.min(hi,end)) - x(Math.max(lo,start)), bottom - top);
     }
     function trace(blocks, field, ylo, yhi, ytop, ybottom, color) {
       const y = v => ybottom - (Math.max(ylo,Math.min(yhi,v)) - ylo) / (yhi-ylo) * (ybottom-ytop);
@@ -102,7 +125,12 @@
       ctx.fillRect(a,top,b-a,bottom-top);ctx.strokeRect(a,top,b-a,bottom-top);
     }
     if (selected) {
-      ctx.strokeStyle='#0867a5'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x(state(selected).time_s),top); ctx.lineTo(x(state(selected).time_s),bottom); ctx.stroke();
+      ctx.strokeStyle='#0867a5'; ctx.lineWidth=2;
+      for (const [time, dash] of [[selectedState.time_s, []], [selectedState.restart_s, [5,4]]]) {
+        if (time < lo || time > hi) continue;
+        ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x(time),top);ctx.lineTo(x(time),bottom);ctx.stroke();
+      }
+      ctx.setLineDash([]);
     }
   }
   function mount(recording) {
@@ -116,6 +144,7 @@
     card.append(archiveButton);
     const heading = element('h3','Review station stops'); card.append(heading);
     card.append(element('p','Select a candidate to inspect its surrounding signal. Accept confirms a station stop; discard excludes it. Short candidates can be accepted after inspection. Restart defaults to the end of the accepted stop; adjust it if necessary.'));
+    card.append(element('p','Shaded intervals follow the arrival and restart times below. Solid blue: selected arrival; dashed blue: selected restart.'));
     card.append(element('p','', 'review-count'));
     let selected = own[0] || null, zoom = false, selection=null;
     const toolbar = element('div', undefined, 'review-toolbar');
@@ -160,7 +189,14 @@
       for(const c of [...own].sort((a,b)=>state(a).time_s-state(b).time_s)) {
         const row=body.querySelector(`[data-candidate-id="${c.id}"]`);
         if(row){body.append(row);row.dataset.selected=String(selected?.id===c.id);
-          if(c.manual){row.querySelector('.candidate-focus').textContent=`${c.start_s.toFixed(1)}–${c.end_s.toFixed(1)}s · manual`;row.querySelector('.candidate-duration').textContent=c.duration_s.toFixed(1)+'s';row.querySelector('.candidate-boundary').textContent=c.boundary;}}
+          const current=state(c), duration=current.restart_s-current.time_s;
+          const focus=row.querySelector('.candidate-focus');
+          focus.textContent=`${current.time_s.toFixed(1)}–${current.restart_s.toFixed(1)}s${c.manual?' · manual':''}`;
+          focus.title=c.manual?'Manually defined stop':`Original detection: ${c.start_s.toFixed(3)}–${c.end_s.toFixed(3)} s (${c.duration_s.toFixed(1)} s)`;
+          row.querySelector('.candidate-duration').textContent=duration.toFixed(1)+'s'+(!c.manual && duration<data.minimum_stop_seconds?' · short':'');
+          row.querySelector('.candidate-boundary').textContent=c.boundary;
+          row.querySelector('[aria-label="Restart time"]').min=current.time_s;
+        }
       }
     };
     zoomButton.onclick=()=>{zoom=!zoom; zoomButton.textContent=zoom?'Show full recording':'Zoom to selected stop'; refresh();};
