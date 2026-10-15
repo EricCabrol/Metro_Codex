@@ -225,12 +225,14 @@ class ReviewStore:
                       ["recording", "section", "start_s", "end_s", "file", "contains_gap"])
             duration_statistics(metrics)
             write_trip_acceleration(self.output, metrics, payload.get("trip_window_seconds", 30),
-                                    payload.get("trip_restart_offset_seconds", 0.5))
+                                    payload.get("trip_restart_offset_seconds", 0.5), payload.get("arrival_window_seconds", 20),
+                                    [r.get("line") for r in payload["recordings"]])
             return {"sections": len(plan), "index": "reviewed_sections.csv",
                     "trips": charts,
                     "acceleration_csv": "trip_acceleration.csv",
                     "acceleration_plot": "trip_acceleration.png",
                     "deceleration_plot": "trip_deceleration.png",
+                    "global_statistics_plot": "global_statistics.png",
                     "window_seconds": payload.get("trip_window_seconds", 30),
                     "complete_windows": sum(r["status"] == "complete" for r in metrics)}
 

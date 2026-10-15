@@ -271,6 +271,8 @@
         if(image) image.src=result.acceleration_plot+'?updated='+Date.now();
         const deceleration=document.querySelector('img[src^="trip_deceleration.png"]');
         if(deceleration) deceleration.src=result.deceleration_plot+'?updated='+Date.now();
+        const globalPlot=document.getElementById('global-statistics-plot');
+        if(globalPlot && result.global_statistics_plot)globalPlot.src=result.global_statistics_plot+'?updated='+Date.now();
         window.renderTripCharts(result.trips || []);}
       catch(error){status.textContent='Section export failed: '+error.message;}
       finally {exportButton.disabled=false;}

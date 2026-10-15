@@ -94,7 +94,8 @@ def write_csv(rows, path, columns=None):
 
 def report_contents(summaries, has_failures):
     """Build navigation for report sections and individual recording reviews."""
-    links = [("report-guide", "Reading the report"),
+    links = [("global-statistics", "Global Statistics"),
+             ("report-guide", "Reading the report"),
              ("route-checks", "Route and direction checks"),
              ("event-comparison", "Exploratory comparison"),
              ("restart-extrema", "Acceleration and deceleration after validated restarts"),
@@ -190,6 +191,7 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     text += '<h1>Metro braking exploration</h1>'
     text += report_contents(summaries, bool(failures))
     text += '<div class="review-global"><a href="#report-contents">Contents</a><button id="download-stops" type="button">Download reviewed stops CSV</button><button id="export-sections" type="button" disabled>Export sections from accepted stops</button><a id="section-index" hidden>Open section index</a><p id="review-save-status" role="status">Loading review controls…</p></div>'
+    text += f'<section id="global-statistics"><h2>Global Statistics</h2><p>Maximum filtered deceleration magnitude for each run, grouped by metro line. Orange: {config.get("trip_window_seconds", 30):g} seconds starting {config.get("trip_restart_offset_seconds", .5):g} s after validated restart. Purple: the last {config.get("arrival_window_seconds", 20):g} seconds before the next validated arrival. Each window contributes independently when valid, including on partial runs; missing or incomplete windows and windows without negative acceleration are excluded. All directions and interstations on a line are pooled.</p><img id="global-statistics-plot" src="global_statistics.png" alt="Boxplots of maximum departure and pre-arrival deceleration for each metro line"><p>Box: 25th–75th percentiles; center line: median; whiskers: extreme values within 1.5 times the interquartile range. Dots show every included run; n is the number of valid measurements. Small samples remain visible and should be interpreted cautiously. <a href="global_statistics.csv">Download statistics and excluded counts CSV</a>.</p></section>'
     text += '<section id="archived-recordings"><h2>Archived recordings</h2><div id="archive-list">Start the review server to archive or restore recordings.</div></section>'
     text += '<h2 id="report-guide">Reading the report</h2>'
     text += f'<p class="warning">Y points forward by convention; Yinv reverses it. PCA alignment and motion around dwells check that convention, with inconsistencies flagged rather than silently corrected. Stop candidates require at least {config["minimum_stop_seconds"]:g} seconds of observed dwell. Route counts are independent checks, not detection targets. No perceptual threshold or safety conclusion is established.</p>'
@@ -337,7 +339,8 @@ def main():
     write_csv(section_inventory, output / "sections.csv", columns=["recording", "section", "start_s", "end_s", "file", "contains_gap"])
     duration_statistics(trip_metrics)
     write_trip_acceleration(output, trip_metrics, config.get("trip_window_seconds", 30),
-                            config.get("trip_restart_offset_seconds", 0.5))
+                            config.get("trip_restart_offset_seconds", 0.5), config.get("arrival_window_seconds", 20),
+                            [r.get("line") for r in summaries])
     write_csv([{"recording": q["recording"], "time_s": q["start_s"], "accepted": False,
                 "note": f'{q["duration_s"]:.1f}s dwell, {q["boundary"]}; onset delayed by rolling window; requires review'} for q in quiet],
               output / "stop_review_template.csv", columns=["recording", "time_s", "accepted", "note"])

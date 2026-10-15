@@ -362,3 +362,18 @@ to hide it, or click its name to inspect its individual run. Drag, scroll, enter
 time bounds, or use the zoom buttons to inspect the comparison. **First 30 s**
 focuses on departures; **Full runs** restores the full time range. Comparisons
 update when sections are exported after reviewing stops.
+
+## Global Statistics
+
+At the beginning of the report, paired boxplots pool maximum filtered deceleration
+magnitudes by metro line: the configured departure window (default restart +0.5
+to +30.5 seconds) and pre-arrival window (default last 20 seconds). All directions
+and interstations contribute. Each phase uses its own valid measurements, so a
+partial run can contribute one phase when that window is complete. Missing,
+incomplete, invalid, or no-deceleration windows do not contribute a zero.
+
+Dots show individual runs, boxes span the 25th–75th percentiles, the center line
+is the median, and whiskers extend to the most extreme observations within 1.5
+interquartile ranges. Every group displays its valid sample count, including zero.
+`global_statistics.csv` contains counts, exclusions and distribution summaries.
+The plots refresh on section export and when recordings are archived or restored.
