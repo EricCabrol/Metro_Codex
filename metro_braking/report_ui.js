@@ -131,6 +131,25 @@
     const link=element('a');const url=URL.createObjectURL(new Blob([rows.map(row=>row.map(quote).join(',')).join('\r\n')+'\r\n'],{type:'text/csv;charset=utf-8'}));
     link.href=url;link.download='stops.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
+  window.openReportAnchor = () => {
+    let id;
+    try {id = decodeURIComponent(location.hash.slice(1));} catch {return;}
+    const target = document.getElementById(id);
+    if (!target) return;
+    for (let node = target; node; node = node.parentElement) {
+      if (node.tagName === 'DETAILS') node.open = true;
+    }
+    requestAnimationFrame(() => target.scrollIntoView({block:'start'}));
+  };
+  window.addEventListener('hashchange', window.openReportAnchor);
+  document.addEventListener('click', event => {
+    const link = event.target.closest('a[href^="#"]');
+    if (link && link.hash === location.hash) window.openReportAnchor();
+  });
+  const toolbar = document.querySelector('.review-global');
+  if (toolbar) new ResizeObserver(() => {
+    document.documentElement.style.setProperty('--report-scroll-offset', `${toolbar.getBoundingClientRect().height+16}px`);
+  }).observe(toolbar);
   async function init() {
     try {decisions=JSON.parse(localStorage.getItem(key)||'{}');} catch {decisions={};}
     // Ignore old boundaries; candidate IDs are stable across threshold reruns.

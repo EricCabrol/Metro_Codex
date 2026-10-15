@@ -86,6 +86,26 @@ def write_csv(rows, path, columns=None):
     pd.DataFrame(rows, columns=columns).to_csv(path, index=False)
 
 
+def report_contents(summaries, has_failures):
+    """Build navigation for report sections and individual recording reviews."""
+    links = [("report-guide", "Reading the report"),
+             ("route-checks", "Route and direction checks"),
+             ("event-comparison", "Exploratory comparison"),
+             ("restart-extrema", "Acceleration and deceleration after validated restarts"),
+             ("trip-signals", "Filtered signal for each validated interstation run")]
+    items = ''.join(f'<li><a href="#{target}">{label}</a></li>' for target, label in links)
+    if has_failures:
+        items += '<li><a href="#failed-recordings">Failed recordings</a></li>'
+    recordings = ''.join(
+        f'<li><a href="#recording-{i}">{html.escape(summary["recording"])}</a>'
+        f'<ul><li><a href="#stop-review-{i}">Review station stops</a></li>'
+        f'<li><a href="#diagnostics-{i}">Detection tables and full diagnostic plots</a></li></ul></li>'
+        for i, summary in enumerate(summaries))
+    return ('<nav id="report-contents" aria-label="Table of contents"><h2>Contents</h2>'
+            f'<ul>{items}</ul><details><summary>Interstation runs</summary><div id="run-contents"></div></details>'
+            f'<details><summary>Recordings and stop reviews</summary><ul>{recordings}</ul></details></nav>')
+
+
 def report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trips=None):
     inventory = pd.DataFrame(summaries)
     event_frame = pd.DataFrame(events)
@@ -97,13 +117,13 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
         rejected = pd.DataFrame([q for q in rejected_dwells if q["recording"] == summary["recording"]])
         short_table = '<details><summary>Short quiet intervals excluded by minimum duration</summary>' + rejected[["start_s", "end_s", "duration_s", "boundary"]].to_html(index=False, float_format=lambda x: f"{x:.2f}") + '</details>' if not rejected.empty else ""
         route = html.escape(summary.get("route_stations", summary["route_status"]))
-        cells.append(f'<article><h2>{html.escape(summary["recording"])}</h2>'
+        cells.append(f'<article id="recording-{i}"><h2>{html.escape(summary["recording"])}</h2>'
                      f'<p>{route}</p>'
                      f'<p>{summary["duration_s"]:.1f} seconds; {summary["median_sample_hz"]:.1f} Hz; '
                      f'{len(own)} candidates/events. {html.escape(summary["quality_flags"])}</p>'
                      f'<p>{html.escape(summary["stop_count_status"])}</p>'
-                     f'<div class="stop-review" data-review-recording="{i}"></div>'
-                     f'<details><summary>Detection tables and full diagnostic plots</summary>{stop_table}{short_table}'
+                     f'<div id="stop-review-{i}" class="stop-review" data-review-recording="{i}"></div>'
+                     f'<details id="diagnostics-{i}"><summary>Detection tables and full diagnostic plots</summary>{stop_table}{short_table}'
                      f'<a href="plots/{i:02d}.png"><img src="plots/{i:02d}.png" alt="Signal diagnostics"></a></details></article>')
     comparison = ""
     if events:
@@ -126,24 +146,27 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
         plt.close(fig)
     text = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Metro braking analysis</title><link rel="stylesheet" href="report_ui.css">'
     text += '<style>body{font:16px system-ui;max-width:1400px;margin:30px auto;padding:0 20px;color:#17202a}img{max-width:100%}table{border-collapse:collapse;font-size:12px}td,th{padding:6px;border:1px solid #ddd}article{margin:40px 0} .warning{background:#fff3cd;padding:18px}</style>'
-    text += '<h1>Metro braking exploration</h1><div class="review-global"><button id="download-stops" type="button">Download reviewed stops CSV</button><button id="export-sections" type="button" disabled>Export sections from accepted stops</button><a id="section-index" hidden>Open section index</a><p id="review-save-status" role="status">Loading review controls…</p></div>'
+    text += '<h1>Metro braking exploration</h1>'
+    text += report_contents(summaries, bool(failures))
+    text += '<div class="review-global"><a href="#report-contents">Contents</a><button id="download-stops" type="button">Download reviewed stops CSV</button><button id="export-sections" type="button" disabled>Export sections from accepted stops</button><a id="section-index" hidden>Open section index</a><p id="review-save-status" role="status">Loading review controls…</p></div>'
+    text += '<h2 id="report-guide">Reading the report</h2>'
     text += f'<p class="warning">Y points forward by convention; Yinv reverses it. PCA alignment and motion around dwells check that convention, with inconsistencies flagged rather than silently corrected. Stop candidates require at least {config["minimum_stop_seconds"]:g} seconds of observed dwell. Route counts are independent checks, not detection targets. No perceptual threshold or safety conclusion is established.</p>'
     text += '<p>Red shading: expected braking; blue: opposite-sign events retained when direction is uncertain; green: qualifying dwell candidates; orange: short quiet intervals excluded from counts; purple dashed lines: original SensorLogger Stop annotations. Stops use uncalibrated XYZ variation (green trace) and longitudinal distance from a quiet-window baseline (gray trace), with a trailing one-second window. Disturbances of up to 1.5 seconds may be bridged; recording gaps never are. At least 90% of each candidate must be quiet. Steady motion can still produce a false positive.</p>'
     text += '<p>Expected arrivals exclude the origin and include the destination. Intermediate stops exclude both endpoints. The count check compares interior candidates with intermediate stations; endpoint dwells may be truncated, and gaps or passenger movement may hide stops. Matching the count does not confirm station identities.</p>'
     text += '<p>Use Accept, Discard or Pending below to review station stops. Arrival and restart times are editable. Rolling-window onset can lag the actual arrival. Download reviewed stops CSV exports decisions without manual editing. For automatic disk saves and section exports, run <code>python -m metro_braking --serve</code> and open the printed local URL. Braking-event labels remain a separate workflow.</p>'
     columns = ["recording", "expected_arrivals", "expected_intermediate_stops", "detected_interior_stops", "short_dwell_candidates", "stop_count_status", "orientation_status"]
-    text += '<h2>Route and direction checks</h2>' + inventory.reindex(columns=columns).to_html(index=False)
+    text += '<h2 id="route-checks">Route and direction checks</h2>' + inventory.reindex(columns=columns).to_html(index=False)
     text += '<p>Full sampling and axis details: <a href="inventory.csv">inventory.csv</a>. Direction evidence: <a href="orientation_checks.csv">orientation_checks.csv</a>.</p>'
     text += '<p>Station-order sources, checked 30 September 2026: ' + ', '.join(f'<a href="{line["source"]}">Transilien line {number}</a>' for number, line in CATALOG["lines"].items()) + '. Regular topology is used for the 2024 recordings; current closures are not applied.</p>'
-    text += '<h2>Exploratory comparison</h2>' + comparison
-    text += f'<h2>Acceleration and deceleration after validated stops</h2><p>Independent maximum signed filtered forward acceleration and maximum deceleration magnitude over {config.get("trip_window_seconds", 30):g} seconds starting {config.get("trip_restart_offset_seconds", 0.5):g} seconds after each validated restart (end of the accepted stop). Both use the same window; station dwell is excluded. Short trips and windows with missing samples are excluded. No negative acceleration is recorded as no_deceleration. Inspect orientation flags before interpretation.</p><p><a href="trip_acceleration.csv">Download trip acceleration and deceleration CSV</a></p><img src="trip_acceleration.png" alt="Maximum acceleration after validated stops"><img src="trip_deceleration.png" alt="Maximum deceleration after validated stops">'
+    text += '<h2 id="event-comparison">Exploratory comparison</h2>' + comparison
+    text += f'<h2 id="restart-extrema">Acceleration and deceleration after validated restarts</h2><p>Independent maximum signed filtered forward acceleration and maximum deceleration magnitude over {config.get("trip_window_seconds", 30):g} seconds starting {config.get("trip_restart_offset_seconds", 0.5):g} seconds after each validated restart (end of the accepted stop). Both use the same window; station dwell is excluded. Short trips and windows with missing samples are excluded. No negative acceleration is recorded as no_deceleration. Inspect orientation flags before interpretation.</p><p><a href="trip_acceleration.csv">Download interstation run acceleration and deceleration CSV</a></p><img src="trip_acceleration.png" alt="Maximum acceleration after validated restarts"><img src="trip_deceleration.png" alt="Maximum deceleration after validated restarts">'
     if events:
         text += '<img src="comparison.png" alt="Candidate intensity and jerk comparison">'
     if failures:
-        text += '<h2>Failed recordings</h2><pre>' + html.escape(json.dumps(failures, indent=2)) + '</pre>'
+        text += '<h2 id="failed-recordings">Failed recordings</h2><pre>' + html.escape(json.dumps(failures, indent=2)) + '</pre>'
     payload = report_payload(summaries, quiet, rejected_dwells, config, series)
     payload["trips"] = trips or []
-    text += '<section id="trip-signals"><h2>Filtered signal for each validated trip</h2><p>Blue: maximum acceleration. Orange: maximum deceleration. Shading marks the measurement window. Drag across a chart or use the mouse wheel to zoom in time; exact time bounds and reset buttons are also available.</p><div id="trip-charts"></div></section>'
+    text += '<section id="trip-signals"><h2>Filtered signal for each validated interstation run</h2><p>Blue: maximum acceleration. Orange: maximum deceleration. Shading marks the measurement window. Drag across a chart or use the mouse wheel to zoom in time; exact time bounds and reset buttons are also available.</p><div id="trip-charts"></div></section>'
     encoded = json.dumps(payload, allow_nan=False, default=lambda v: v.item(), separators=(",", ":"))
     (output / "report_data.json").write_text(encoded, encoding="utf-8")
     text += ''.join(cells) + '<script id="review-data" type="application/json">' + encoded.replace("<", "\\u003c") + '</script><script src="trip_charts.js"></script><script src="report_ui.js"></script></html>'

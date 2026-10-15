@@ -148,7 +148,7 @@ with the existing batch workflow:
 python -m metro_braking --stops reviews/stops.csv --output results_reviewed
 ```
 
-Each trip between two accepted stop times produces independent acceleration
+Each interstation run between two accepted stop times produces independent acceleration
 and deceleration maxima over the same window: the first **30 seconds** starting 0.5 seconds after
 the restart by default. Set `trip_window_seconds` in `config.json` to change the
 common duration. Neither peak depends on the timing or presence of the other.
@@ -157,7 +157,7 @@ Set `trip_restart_offset_seconds` (default 0.5) to change the delay before analy
 Both graphs use restart time as t=0, so the default measurement window is
 [0.5, 30.5) seconds on that axis. Station dwell and the first 0.5 seconds are excluded.
 For a stop spanning 131.8–159.3 s, the restart is 159.3 s and analysis covers
-[159.8, 189.8) s in the recording. The next accepted arrival still bounds the trip.
+[159.8, 189.8) s in the recording. The next accepted arrival still bounds the interstation run.
 Review controls expose editable arrival and restart times. New stop CSV exports
 include `restart_s` and `candidate_id`. Legacy arrival-only CSVs are supported
 when an arrival uniquely matches a detected stop start (including one-decimal
@@ -172,14 +172,18 @@ Trips shorter than the configured duration and windows with missing samples or
 gaps are flagged and excluded from both comparison plots, `trip_acceleration.png`
 and `trip_deceleration.png`. Positive acceleration means propulsion under the
 configured axis convention; check orientation flags before comparing recordings.
-The last accepted stop has no following validated trip boundary and produces no
-trip measurement. At least two accepted stops per recording are required.
+The last accepted stop has no following validated interstation run boundary and produces no
+interstation run measurement. At least two accepted stops per recording are required.
 
-The report includes a filtered signal chart for each validated trip, with blue
+The report starts with a clickable table of contents linking to each section,
+recording review, diagnostic panel and individual interstation run. Links open
+collapsed target panels automatically; the sticky Contents link returns to the top.
+
+The report includes a filtered signal chart for each validated interstation run, with blue
 acceleration and orange deceleration markers at the exact measured extrema.
 Time is relative to the restart; shading marks the configured measurement
-window. Expand a trip, drag across the chart or use the mouse wheel to zoom.
-Numeric time bounds, Zoom in/out, Analysis window and Full trip buttons provide
+window. Expand an interstation run, drag across the chart or use the mouse wheel to zoom.
+Numeric time bounds, Zoom in/out, Analysis window and Full interstation run buttons provide
 keyboard-accessible controls. Gaps remain separate signal blocks. Batch charts
 work without a server; exporting current browser decisions refreshes the charts.
 

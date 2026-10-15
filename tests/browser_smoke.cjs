@@ -62,7 +62,7 @@ const assert = require('node:assert/strict');
     const before=Number(await chart.getAttribute('data-view-end'));
     await trip.getByRole('button',{name:'Zoom in',exact:true}).click();
     assert(Number(await chart.getAttribute('data-view-end'))-Number(await chart.getAttribute('data-view-start'))<before);
-    await trip.getByRole('button',{name:'Full trip',exact:true}).click();
+    await trip.getByRole('button',{name:'Full interstation run',exact:true}).click();
     const saved=JSON.parse(fs.readFileSync(path.join(temporary,'reviews','stops.json'),'utf8'));
     assert.equal(saved.decisions[await rows.nth(0).getAttribute('data-candidate-id')].time_s,adjusted);
     assert.equal(saved.decisions[await rows.nth(0).getAttribute('data-candidate-id')].restart_s,adjustedRestart);

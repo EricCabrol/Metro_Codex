@@ -75,12 +75,12 @@ def write_trip_acceleration(output, rows, window_seconds=30, restart_offset_seco
         measured = [r for r in rows if r["status"] == "complete" and r[field] is not None]
         fig, ax = plt.subplots(figsize=(12, max(4, len(measured) * 0.28)), constrained_layout=True)
         if measured:
-            labels = [f'{r["recording"]} / trip {r["section"]}' for r in measured]
+            labels = [f'{r["recording"]} / interstation run {r["section"]}' for r in measured]
             ax.barh(range(len(measured)), [r[field] for r in measured], color=color)
             ax.set_yticks(range(len(measured)), labels, fontsize=7)
             ax.invert_yaxis()
         else:
-            ax.text(0.5, 0.5, "No measurements in complete windows from validated stops",
+            ax.text(0.5, 0.5, "No measurements in complete windows from validated restarts",
                     ha="center", va="center", transform=ax.transAxes)
             ax.set_yticks([])
         ax.set_xlabel(label)

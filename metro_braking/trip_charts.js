@@ -11,15 +11,29 @@
     const root = document.getElementById('trip-charts');
     if (!root) return;
     root.replaceChildren();
+    const contents = document.getElementById('run-contents');
+    if (contents) contents.replaceChildren();
+    const groups = new Map();
     if (!trips.length) {
-      root.textContent = 'No validated trips yet. Accept at least two stops per recording and export sections, or run analysis with --stops.';
+      root.textContent = 'No validated interstation runs yet. Accept at least two stops per recording and export sections, or run analysis with --stops.';
       return;
     }
-    for (const trip of trips) {
+    for (const [index, trip] of trips.entries()) {
       const m = trip.metrics, duration = m.end_s - m.start_s;
-      const card = document.createElement('details'); card.className = 'trip-signal';
+      const card = document.createElement('details'); card.className = 'trip-signal'; card.id = `interstation-run-${index}`;
       const summary = document.createElement('summary');
-      summary.textContent = `${m.recording} / trip ${m.section}`; card.append(summary);
+      summary.textContent = `${m.recording} / interstation run ${m.section}`; card.append(summary);
+      if (contents) {
+        if (!groups.has(m.recording)) {
+          const group = document.createElement('details');
+          const title = document.createElement('summary'); title.textContent = m.recording;
+          const list = document.createElement('ul'); group.append(title, list); contents.append(group);
+          groups.set(m.recording, list);
+        }
+        const item = document.createElement('li'), link = document.createElement('a');
+        link.href = '#' + card.id; link.textContent = `Interstation run ${m.section}`;
+        item.append(link); groups.get(m.recording).append(item);
+      }
       const description = document.createElement('p'); description.className = 'trip-extrema';
       const format = (value, time) => value === null ? 'not measured' : `${value.toFixed(4)} m/s² at ${(time - m.start_s).toFixed(3)} s`;
       description.textContent = `Maximum acceleration: ${format(m.max_acceleration_mps2, m.peak_time_s)}. Maximum deceleration: ${format(m.max_deceleration_mps2, m.deceleration_peak_time_s)}. Restart: ${m.restart_s.toFixed(3)} s in recording. Analysis: ${(m.window_start_s-m.restart_s).toFixed(3)}–${(m.window_end_s-m.restart_s).toFixed(3)} s after restart; ${m.status}; ${m.deceleration_status}.`;
@@ -101,7 +115,7 @@
       });
       button('Zoom in', () => zoom(0.5)); button('Zoom out', () => zoom(2));
       button(`Analysis window (${m.window_seconds} s)`, () => view(m.window_start_s-m.restart_s, Math.min(m.window_end_s-m.restart_s, duration)));
-      button('Full trip', () => view(0, duration));
+      button('Full interstation run', () => view(0, duration));
       svg.addEventListener('wheel', event => {event.preventDefault(); zoom(event.deltaY < 0 ? 0.8 : 1.25, xTime(event));}, {passive:false});
       svg.onpointerdown = event => {if(event.button !== 0)return; anchor = xTime(event); svg.setPointerCapture(event.pointerId);};
       svg.onpointerup = event => {
@@ -117,5 +131,6 @@
       };
       card.append(toolbar, svg); root.append(card); draw();
     }
+    window.openReportAnchor?.();
   };
 })();
