@@ -161,7 +161,7 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
         ax.grid(alpha=0.2)
         fig.savefig(output / "comparison.png", dpi=140)
         plt.close(fig)
-    text = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Metro braking analysis</title><link rel="stylesheet" href="report_ui.css">'
+    text = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Metro braking analysis</title><link rel="stylesheet" href="report_ui.css"><link rel="stylesheet" href="run_comparison.css">'
     text += '<style>body{font:16px system-ui;max-width:1400px;margin:30px auto;padding:0 20px;color:#17202a}img{max-width:100%}table{border-collapse:collapse;font-size:12px}td,th{padding:6px;border:1px solid #ddd}article{margin:40px 0} .warning{background:#fff3cd;padding:18px}</style>'
     text += '<h1>Metro braking exploration</h1>'
     if processing is not None:
@@ -196,7 +196,7 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     encoded = json.dumps(payload, allow_nan=False, default=lambda v: v.item(), separators=(",", ":"))
     (output / "report_data.json").write_text(encoded, encoding="utf-8")
     text += ''.join(cells) + '<script id="review-data" type="application/json">' + encoded.replace("<", "\\u003c") + '</script><script src="run_comparison.js"></script><script src="trip_charts.js"></script><script src="report_ui.js"></script></html>'
-    for asset in ("report_ui.js", "report_ui.css", "run_comparison.js", "trip_charts.js"):
+    for asset in ("report_ui.js", "report_ui.css", "run_comparison.js", "run_comparison.css", "trip_charts.js"):
         shutil.copyfile(Path(__file__).with_name(asset), output / asset)
     (output / "report.html").write_text(text, encoding="utf-8")
 

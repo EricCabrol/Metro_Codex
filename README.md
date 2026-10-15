@@ -445,16 +445,24 @@ its review rows remain saved for a later retry. To place the cache outside a
 Documents/sync folder, use `--cache-dir "$env:LOCALAPPDATA\MetroCodex\cache"`
 in PowerShell.
 
-## GitHub Pages boxplot demo
+## GitHub Pages demo
 
-`demo/` is a standalone snapshot containing only the departure/arrival boxplots,
-aggregate statistics CSV and a small snapshot summary. Raw recordings, filtered
-time series, individual run metrics and review controls are not published.
+`demo/` is a standalone snapshot with departure/arrival boxplots, aggregate
+statistics CSV, and **Compare the same interstation run**. Comparisons load on
+scroll and use the same renderer as the report: choose an interstation, hide
+individual curves, enter time bounds or zoom. The snapshot currently includes
+59 complete runs across 12 repeated directed interstations.
+
+Only filtered samples within comparable runs, relative times and readable recording
+labels are included for the interactive charts. Raw recordings, full recording
+traces, review decisions and review controls are not published. Comparison legends
+have no links to the local report's individual-run sections.
 
 To enable the site once, choose **Settings → Pages → Build and deployment →
-Source: GitHub Actions**. Then choose **Actions → Publish boxplot demo → Run
-workflow** on `main`. The workflow publishes only `demo/`; publication is manual
-so adding analysis code does not automatically replace the demo snapshot.
+Source: GitHub Actions**. Then choose **Actions → Publish metro demo → Run
+workflow** on `main`. The workflow publishes only `demo/` on pushes to `main` that change the demo or
+its workflow. Manual publication remains available. Analysis code changes alone
+do not replace the snapshot.
 The site URL is `https://ericcabrol.github.io/Metro_Codex/` after successful deployment.
 
 To update the snapshot after generating/reviewing a report:
@@ -463,5 +471,5 @@ To update the snapshot after generating/reviewing a report:
 python scripts/build_pages_demo.py --report results_reviewed
 ```
 
-Commit the updated files in `demo/`, push, and run the publication workflow again.
+Commit the updated files in `demo/` and push to `main` to publish the new snapshot.
 For local inspection, serve that folder with `python -m http.server 8000 --directory demo`.
