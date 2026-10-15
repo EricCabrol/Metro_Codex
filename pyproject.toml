@@ -16,4 +16,4 @@ metro-braking = "metro_braking.cli:main"
 include = ["metro_braking*"]
 
 [tool.setuptools.package-data]
-metro_braking = ["routes.json", "report_ui.js", "report_ui.css", "trip_charts.js", "run_comparison.js"]
+metro_braking = ["routes.json", "report_ui.js", "report_ui.css", "trip_charts.js", "run_comparison.js", "run_comparison.css"]

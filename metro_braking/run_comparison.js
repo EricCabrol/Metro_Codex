@@ -14,7 +14,7 @@
     if (text !== undefined) node.textContent = text;
     return node;
   };
-  window.renderRunComparisons = trips => {
+  window.renderRunComparisons = (trips, {linkRuns = true} = {}) => {
     const root = document.getElementById('run-comparison-charts');
     if (!root) return;
     root.replaceChildren();
@@ -68,8 +68,8 @@
         check.onchange=()=>{trace.visible=check.checked;draw();};
         const swatch=element('span',undefined,'comparison-swatch');swatch.style.borderColor=trace.color;
         swatch.style.borderTopStyle=trace.dash?'dashed':'solid';label.append(check,swatch);row.append(label);
-        const link=element('a',trace.trip.metrics.display_recording || trace.trip.metrics.recording);
-        link.href=`#interstation-run-${trace.index}`;
+        const link=element(linkRuns?'a':'span',trace.trip.metrics.display_recording || trace.trip.metrics.recording);
+        if(linkRuns)link.href=`#interstation-run-${trace.index}`;
         row.append(link,element('span',` — ${(trace.trip.metrics.end_s-trace.trip.metrics.restart_s).toFixed(2)} s`));legend.append(row);
       }
       const left=70, right=1080, top=30, bottom=345;

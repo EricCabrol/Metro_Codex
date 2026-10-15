@@ -53,9 +53,17 @@
     const accepted = own.filter(c => state(c).decision === 'accepted');
     const interior = accepted.filter(c => c.boundary === 'interior').length;
     const pending = own.filter(c => state(c).decision === 'pending').length;
+    let badge=card.querySelector('.review-badge');
+    if(!badge){badge=element('p', '', 'review-badge');card.querySelector('.review-count').before(badge);}
+    const reviewLabel=pending ? `Pending decisions (${pending})` : 'Review complete';
+    badge.textContent=reviewLabel;
+    badge.className='review-badge '+(pending?'review-pending':'review-complete');
     card.querySelector('.review-count').textContent = `${accepted.length} accepted (${interior} interior), ${pending} pending. Expected intermediate stops: ${recording.expected_intermediate_stops ?? 'unknown'}.${accepted.length && interior === recording.expected_intermediate_stops && !recording.gap_count && !accepted.some(c=>c.boundary==='gap edge') ? ' Station names inferred from stop order.' : ''}`;
     const routeRow=document.querySelector(`.route-checks-table [data-route-recording="${data.recordings.indexOf(recording)}"]`);
     if(routeRow){
+      const reviewCell=routeRow.querySelector('[data-field="review_status"]');
+      if(reviewCell){const label=element('span',reviewLabel,badge.className);reviewCell.replaceChildren(label);}
+
       const expected=recording.expected_intermediate_stops, known=Number.isFinite(expected);
       const mismatch=known && interior!==expected;
       routeRow.querySelector('[data-field="accepted_interior_stops"]').textContent=interior;

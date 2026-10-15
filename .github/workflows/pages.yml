@@ -1,6 +1,11 @@
-name: Publish boxplot demo
+name: Publish metro demo
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "demo/**"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -23,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-      - name: Upload only the boxplot demo
+      - name: Upload the public demo
         uses: actions/upload-pages-artifact@v3
         with:
           path: demo
