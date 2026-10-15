@@ -81,11 +81,26 @@ be mistaken for braking; low variance share warns about competing axes.
 
 ## Route counts and direction checks
 
-The local `metro_braking/routes.json` reference contains the corridors used by
-the test recordings, with published station sequences checked on 30 September
-2026. It has partial coverage, supports reverse trips and common folder aliases,
-and flags unknown endpoints rather than guessing. The sources are Transilien's
-text transcriptions of the RATP line diagrams:
+The bundled `metro_braking/routes.json` reference covers all 16 Paris metro
+lines (1–14, 3bis and 7bis), including both branches of lines 7 and 13 and the
+asymmetric station order of lines 10 and 7bis. The offline reference was expanded
+on 15 October 2026. Links to the published official line diagrams are retained;
+live retrieval was unavailable in the development environment for this expansion.
+
+Recording names accept bis variants (`L3bis`, `L3_bis`, `L3b`), accents, common
+station aliases, and `St`/`Ste` abbreviations. For example,
+`L3_Sentier_-_St-Lazare_-2024-05-03_17-04-03` resolves to Sentier → Bourse →
+Quatre-Septembre → Opéra → Havre – Caumartin → Saint-Lazare: **4 intermediate
+stops**, or 5 arrivals after departure.
+
+Known recent opening dates are applied to the recording date: the 13 June 2024
+line 11 extension, 24 June 2024 line 14 extensions, and 18 January 2025 opening of
+Villejuif – Gustave Roussy. A station not yet open is omitted when passing through
+it; an unopened endpoint is flagged explicitly. Services requiring a branch
+transfer are not invented as direct journeys. Unknown/misspelled stations and
+unsupported service patterns remain explicit rather than producing a guessed count.
+
+Examples on the original recordings:
 
 | Line / test commute | Intermediate stations | Arrivals after departure | Source |
 | --- | ---: | ---: | --- |
@@ -101,8 +116,8 @@ Saint-Germain-des-Prés, Saint-Sulpice, Saint-Placide, Montparnasse - Bienvenüe
 Arrivals exclude the origin and include the destination; intermediate stations
 exclude both endpoints. Recording-edge dwells and gap-edge dwells are counted
 separately. Only interior candidates are compared with intermediate stations.
-The reference is regular topology for these 2024 recordings, not today's service
-status. Historical closures are not inferred. A matching count does not prove
+The reference models regular service paths and known recent openings, not temporary
+closures or special services. It is not a complete history of the network. A matching count does not prove
 station identities, and mismatches never cause candidates to be added or removed.
 
 For orientation, examine 14-second raw acceleration windows before arrival and
