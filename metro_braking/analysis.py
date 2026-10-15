@@ -62,6 +62,9 @@ def load_recording(folder, config, source_name=None):
         "duration_s": float(t[-1] - t[0]), "median_sample_hz": float(1 / np.median(dt)),
         "interval_p95_s": float(np.percentile(dt, 95)), "largest_gap_s": float(dt.max()),
         "gap_count": int((dt > config["gap_seconds"]).sum()),
+        "gap_intervals": [{"start_s": float(t[i]), "end_s": float(t[i+1]),
+                           "duration_s": float(dt[i])} for i in np.flatnonzero(dt > config["gap_seconds"])],
+        "estimated_missing_s": float(np.maximum(dt[dt > config["gap_seconds"]] - np.median(dt), 0).sum()),
         "device": meta.get("device name", "unknown"),
         "trip_hint": "brutal" if "brutal" in folder.name else "smooth" if "smooth" in folder.name else "unknown",
     }
@@ -242,6 +245,9 @@ def detect_stops(folder, config):
                     diagnostics[-1]["rejected_dwells"].append(row)
     return intervals, diagnostics, {"stop_source": source.name,
                                   "stop_gap_count": raw_summary["gap_count"],
+                                  "stop_gap_intervals": raw_summary["gap_intervals"],
+                                  "stop_estimated_missing_s": raw_summary["estimated_missing_s"],
+                                  "stop_duration_s": raw_summary["duration_s"],
                                   "short_dwell_candidates": sum(len(d["rejected_dwells"]) for d in diagnostics)}
 
 

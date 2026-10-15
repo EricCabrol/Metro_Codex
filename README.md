@@ -325,3 +325,26 @@ Tests cover known synthetic braking, filter response, gravity fallback,
 unresolved direction, Y/Yinv and opposite signs, minimum dwell and short pauses,
 brief disturbances, route counts, gap isolation and reviewed-boundary handling. Run results
 on the supplied recordings demonstrate execution, not detection accuracy.
+
+## Recording quality and archiving
+
+The report warns about timestamp gaps separately for the acceleration signal and
+uncalibrated stop detection signal. It lists each missing interval, estimated
+missing time (subtracting one normal sample interval per gap), and its percentage
+of that signal's observed recording span. The existing `gap_seconds` configuration
+sets the detection threshold. This detects interrupted sampling; it does not
+establish the cause or detect every kind of sensor failure.
+
+When serving a newly generated report, **Archive recording** moves its source
+folder from `data_test` to sibling `data_test_archive` and rebuilds the report and
+comparisons. **Archived recordings → Restore recording** reverses the move and
+rebuilds again. Reviews are retained, including after editing other recordings.
+A failed rebuild cancels the move. This requires the review server and access to
+the source directory; regenerate older reports once to add that directory metadata.
+Rebuilding can take a moment for a large dataset.
+
+If a recording is removed externally, its CSV review rows are now ignored with a
+console warning rather than failing with “Stop file references unknown recordings”.
+The input CSV is not changed; restore the source folder to reuse those reviews.
+`manifest.json` records ignored recording names. `--allow-empty` allows regeneration
+when all recordings are archived.

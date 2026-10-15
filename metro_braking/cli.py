@@ -17,6 +17,7 @@ from .review import report_payload, serve_report, candidate_id
 from .trip_acceleration import write_trip_acceleration
 from .runs import build_runs, duration_statistics
 from .manual_stops import initial_decisions_from_rows, review_candidates
+from .recordings import available_review_rows
 
 
 def validate_config(config):
@@ -97,7 +98,8 @@ def report_contents(summaries, has_failures):
              ("route-checks", "Route and direction checks"),
              ("event-comparison", "Exploratory comparison"),
              ("restart-extrema", "Acceleration and deceleration after validated restarts"),
-             ("trip-signals", "Filtered signal for each validated interstation run")]
+             ("trip-signals", "Filtered signal for each validated interstation run"),
+             ("archived-recordings", "Archived recordings")]
     items = ''.join(f'<li><a href="#{target}">{label}</a></li>' for target, label in links)
     if has_failures:
         items += '<li><a href="#failed-recordings">Failed recordings</a></li>'
@@ -111,7 +113,24 @@ def report_contents(summaries, has_failures):
             f'<details><summary>Recordings and stop reviews</summary><ul>{recordings}</ul></details></nav>')
 
 
-def report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trips=None, stops=None):
+def continuity_notice(summary):
+    notices = []
+    for title, prefix, duration in (("Acceleration signal", "", summary["duration_s"]),
+                                     ("Stop detection signal", "stop_", summary.get("stop_duration_s", 0))):
+        intervals = summary.get(prefix + "gap_intervals", [])
+        if not intervals:
+            continue
+        missing = summary[prefix + "estimated_missing_s"]
+        percent = 100 * missing / duration if duration else 0
+        rows = "".join(f'<li>{g["start_s"]:.2f}–{g["end_s"]:.2f} s ({g["duration_s"]:.2f} s)</li>' for g in intervals)
+        notices.append(f'<p><strong>{title}: {len(intervals)} gap(s); estimated missing time {missing:.1f} s ({percent:.1f}%).</strong></p>'
+                       f'<details><summary>Missing intervals (recording timestamps)</summary><ul>{rows}</ul></details>')
+    if not notices:
+        return ""
+    return '<aside class="continuity-warning"><strong>Recording quality warning: missing samples</strong>' + "".join(notices) + '<p>Measurements crossing gaps are unavailable. Check this recording before comparing runs.</p></aside>'
+
+
+def report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trips=None, stops=None, data_directory=None):
     inventory = pd.DataFrame(summaries)
     event_frame = pd.DataFrame(events)
     cells = []
@@ -127,6 +146,7 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
                      f'<p>{summary["duration_s"]:.1f} seconds; {summary["median_sample_hz"]:.1f} Hz; '
                      f'{len(own)} candidates/events. {html.escape(summary["quality_flags"])}</p>'
                      f'<p>{html.escape(summary["stop_count_status"])}</p>'
+                     f'{continuity_notice(summary)}'
                      f'<div id="stop-review-{i}" class="stop-review" data-review-recording="{i}"></div>'
                      f'<details id="diagnostics-{i}"><summary>Detection tables and full diagnostic plots</summary>{stop_table}{short_table}'
                      f'<a href="plots/{i:02d}.png"><img src="plots/{i:02d}.png" alt="Signal diagnostics"></a></details></article>')
@@ -154,6 +174,7 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     text += '<h1>Metro braking exploration</h1>'
     text += report_contents(summaries, bool(failures))
     text += '<div class="review-global"><a href="#report-contents">Contents</a><button id="download-stops" type="button">Download reviewed stops CSV</button><button id="export-sections" type="button" disabled>Export sections from accepted stops</button><a id="section-index" hidden>Open section index</a><p id="review-save-status" role="status">Loading review controls…</p></div>'
+    text += '<section id="archived-recordings"><h2>Archived recordings</h2><div id="archive-list">Start the review server to archive or restore recordings.</div></section>'
     text += '<h2 id="report-guide">Reading the report</h2>'
     text += f'<p class="warning">Y points forward by convention; Yinv reverses it. PCA alignment and motion around dwells check that convention, with inconsistencies flagged rather than silently corrected. Stop candidates require at least {config["minimum_stop_seconds"]:g} seconds of observed dwell. Route counts are independent checks, not detection targets. No perceptual threshold or safety conclusion is established.</p>'
     text += '<p>Red shading: expected braking; blue: opposite-sign events retained when direction is uncertain; green: qualifying dwell candidates; orange: short quiet intervals excluded from counts; purple dashed lines: original SensorLogger Stop annotations. Stops use uncalibrated XYZ variation (green trace) and longitudinal distance from a quiet-window baseline (gray trace), with a trailing one-second window. Disturbances of up to 1.5 seconds may be bridged; recording gaps never are. At least 90% of each candidate must be quiet. Steady motion can still produce a false positive.</p>'
@@ -173,6 +194,8 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     initial = initial_decisions_from_rows(payload, stops)
     payload['candidates'] = review_candidates(payload, initial)
     payload['initial_decisions'] = initial
+    if data_directory is not None:
+        payload["data_directory"] = str(data_directory)
     payload["trips"] = trips or []
     for recording in payload["recordings"]:
         recording["display_name"] = display_recording_name(recording["recording"])
@@ -187,6 +210,7 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
 
 def main():
     parser = argparse.ArgumentParser(description="Analyze copied SensorLogger recordings")
+    parser.add_argument("--allow-empty", action="store_true", help="Allow an empty report when all recordings are archived")
     parser.add_argument("--data", type=Path, default=Path("data_test"))
     parser.add_argument("--output", type=Path, default=Path("results"))
     parser.add_argument("--config", type=Path, default=Path("config.json"))
@@ -207,19 +231,19 @@ def main():
     if output == data or data in output.parents or output in data.parents:
         parser.error("Output and source data directories must be separate")
     folders = sorted(p for p in data.iterdir() if p.is_dir())
-    if not folders:
+    if not folders and not args.allow_empty:
         parser.error("No recording folders found")
     reviews = pd.read_csv(args.reviews, keep_default_na=False) if args.reviews else pd.DataFrame()
     stops = pd.read_csv(args.stops, keep_default_na=False) if args.stops else pd.DataFrame()
     if args.stops and not {"recording", "time_s", "accepted"}.issubset(stops):
         parser.error("Stops CSV requires recording,time_s,accepted")
-    if not stops.empty and set(stops.recording) - {p.name for p in folders}:
-        parser.error("Stop file references unknown recordings")
+    all_stops = stops.to_dict("records")
+    all_reviews = reviews.to_dict("records")
+    stops, ignored_stops = available_review_rows(stops, {p.name for p in folders}, "stop reviews")
     required_review_columns = {"recording", "event_id", "start_s", "end_s", "sign", "accepted", "label"}
     if args.reviews and not required_review_columns.issubset(reviews):
         parser.error("Reviews must contain: " + ", ".join(sorted(required_review_columns)))
-    if not reviews.empty and set(reviews.recording) - {p.name for p in folders}:
-        parser.error("Review file references unknown recordings")
+    reviews, ignored_reviews = available_review_rows(reviews, {p.name for p in folders}, "event reviews")
     output.mkdir(parents=True, exist_ok=True)
     (output / "plots").mkdir(exist_ok=True)
     summaries, events, quiet, sensors, failures, manifest = [], [], [], [], [], []
@@ -310,11 +334,13 @@ def main():
     write_csv(review_rows, output / "review_template.csv", columns=["recording", "event_id", "start_s", "end_s", "sign", "accepted", "label"])
     manifest_out = {"configuration": config, "source_files": manifest, "failures": failures,
                     "reviews": reviews.to_dict("records"), "reviewed_stops": stops.to_dict("records"),
+                    "all_reviews": all_reviews, "all_reviewed_stops": all_stops,
+                    "ignored_stop_recordings": ignored_stops, "ignored_review_recordings": ignored_reviews,
                     "route_reference": CATALOG,
                     "versions": {"numpy": np.__version__, "pandas": pd.__version__,
                                  "scipy": __import__("scipy").__version__, "matplotlib": matplotlib.__version__}}
     (output / "manifest.json").write_text(json.dumps(manifest_out, indent=2), encoding="utf-8")
-    report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trip_charts, stops)
+    report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trip_charts, stops, data)
     print(f"Finished: {len(summaries)} recordings, {len(events)} events, {len(failures)} failures. {output / 'report.html'}")
     if failures:
         raise SystemExit(1)
