@@ -1,0 +1,11 @@
+Timestamps for trip L3_Opera_-_Sentier_-2024-02-02_07-55-00
+5.8276391 stop
+22.6020095 start
+58.3841252 stop
+73.22577 start
+78.6771712 stop
+95.4321425 start
+145.2621395 stop
+169.9975378 start
+217.7603459 end
+-0.6606281187072539 avg accel

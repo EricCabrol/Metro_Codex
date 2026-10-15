@@ -4,332 +4,594 @@
     "a4ce076a1cfffc9ad2da": {
       "decision": "accepted",
       "time_s": 69.16228173828128,
+      "restart_s": 87.21228173828128,
       "note": ""
     },
     "ce5f9b4981237df06231": {
       "decision": "accepted",
       "time_s": 131.7622817382813,
+      "restart_s": 159.3122817382813,
       "note": ""
     },
     "09e7ce91869400227054": {
       "decision": "accepted",
       "time_s": 209.71228173828132,
+      "restart_s": 232.91228173828134,
       "note": ""
     },
     "4943d0dad410cac3df84": {
       "decision": "accepted",
       "time_s": 277.81228173828134,
+      "restart_s": 298.4622817382814,
       "note": ""
     },
     "6604414fdeff01eb06b3": {
       "decision": "accepted",
       "time_s": 352.06228173828134,
+      "restart_s": 370.66228173828137,
       "note": ""
     },
     "1468cb1de3c1242c05f2": {
       "decision": "accepted",
       "time_s": 418.9622817382814,
+      "restart_s": 511.1622817382814,
       "note": ""
     },
     "3d80834f43e05a63162b": {
       "decision": "accepted",
       "time_s": 57.23940014648436,
+      "restart_s": 75.13940014648436,
       "note": ""
     },
     "ea1c632858ed137a497f": {
       "decision": "accepted",
       "time_s": 119.73940014648436,
+      "restart_s": 146.53940014648433,
       "note": ""
     },
     "5abb4b776ef6e32f3aa7": {
       "decision": "accepted",
       "time_s": 196.78940014648433,
+      "restart_s": 219.53940014648433,
       "note": ""
     },
     "dd327f070a980067b4e3": {
       "decision": "accepted",
       "time_s": 264.9894001464843,
+      "restart_s": 284.7394001464843,
       "note": ""
     },
     "4962f9f375ac8fb6f0c6": {
       "decision": "accepted",
       "time_s": 338.9394001464843,
+      "restart_s": 356.9394001464843,
       "note": ""
     },
     "0916bff2fd247414ac80": {
       "decision": "accepted",
       "time_s": 406.13940014648426,
+      "restart_s": 424.88940014648426,
       "note": ""
     },
     "a64d3903f9c05ea28fb4": {
       "decision": "accepted",
       "time_s": 63.0676149902344,
+      "restart_s": 97.3176149902344,
       "note": ""
     },
     "d6799bb254565bda2b17": {
       "decision": "accepted",
       "time_s": 232.11761499023444,
+      "restart_s": 249.16761499023445,
       "note": ""
     },
     "d03616da097d12d7c736": {
       "decision": "accepted",
       "time_s": 292.26761499023445,
+      "restart_s": 318.56761499023446,
       "note": ""
     },
     "79a7bc715b2fd74ce85b": {
       "decision": "accepted",
       "time_s": 368.0176149902345,
+      "restart_s": 390.1176149902345,
       "note": ""
     },
     "6283df1eebccca970d73": {
       "decision": "accepted",
       "time_s": 434.36761499023453,
+      "restart_s": 453.2176149902345,
       "note": ""
     },
     "2411e0b581bd358b77ff": {
       "decision": "accepted",
       "time_s": 506.26761499023456,
+      "restart_s": 523.5176149902345,
       "note": ""
     },
     "9d7834b4682e95768265": {
       "decision": "accepted",
       "time_s": 570.2676149902345,
+      "restart_s": 588.5676149902346,
       "note": ""
     },
     "d441cc019038b6143c83": {
       "decision": "accepted",
       "time_s": 57.75731372070311,
+      "restart_s": 93.5073137207031,
       "note": ""
     },
     "78b3c3a1e90fbdd5d8b1": {
       "decision": "accepted",
       "time_s": 149.6073137207031,
+      "restart_s": 167.0573137207031,
       "note": ""
     },
     "7eb7b6222fbecbff3250": {
       "decision": "accepted",
       "time_s": 211.4573137207031,
+      "restart_s": 283.70731372070304,
       "note": ""
     },
     "2eb673c3642fb82f69ca": {
       "decision": "accepted",
       "time_s": 338.75731372070305,
+      "restart_s": 361.6073137207031,
       "note": ""
     },
     "0352d37ad794aa3cafe2": {
       "decision": "accepted",
       "time_s": 407.25731372070305,
+      "restart_s": 442.057313720703,
       "note": ""
     },
     "1b4df04fad0cf713e45d": {
       "decision": "accepted",
       "time_s": 496.45731372070304,
+      "restart_s": 540.607313720703,
       "note": ""
     },
     "5212c08e4d646c31128e": {
       "decision": "accepted",
       "time_s": 589.607313720703,
+      "restart_s": 639.457313720703,
       "note": ""
     },
     "cc0f15e340400baed88b": {
       "decision": "accepted",
       "time_s": 140.8358195800781,
+      "restart_s": 157.98581958007807,
       "note": ""
     },
     "27c2707e08f701c71c21": {
       "decision": "accepted",
       "time_s": 202.18581958007806,
+      "restart_s": 228.78581958007805,
       "note": ""
     },
     "4590bc4d7dec50d921e3": {
       "decision": "accepted",
       "time_s": 277.9858195800781,
+      "restart_s": 321.83581958007807,
       "note": ""
     },
     "d0598cabcc148c136c28": {
       "decision": "accepted",
       "time_s": 366.4358195800781,
+      "restart_s": 419.98581958007804,
       "note": ""
     },
     "89224574a981f94f6dc1": {
       "decision": "accepted",
       "time_s": 473.18581958007803,
+      "restart_s": 519.035819580078,
       "note": ""
     },
     "143af8d6a104bfccbe46": {
       "decision": "accepted",
       "time_s": 565.585819580078,
+      "restart_s": 618.435819580078,
       "note": ""
     },
     "46068b32316dd4fdf9e7": {
       "decision": "accepted",
       "time_s": 56.29281152343752,
+      "restart_s": 89.49281152343752,
       "note": ""
     },
     "4da38a55772b3dbbcf68": {
       "decision": "accepted",
       "time_s": 149.84281152343755,
+      "restart_s": 167.99281152343755,
       "note": ""
     },
     "c4c3584753a6b7762b89": {
       "decision": "accepted",
       "time_s": 212.79281152343756,
+      "restart_s": 240.84281152343758,
       "note": ""
     },
     "6a4f13436286ce17ae67": {
       "decision": "accepted",
       "time_s": 291.0928115234376,
+      "restart_s": 315.5428115234376,
       "note": ""
     },
     "bc93ef495a8d3356fc61": {
       "decision": "accepted",
       "time_s": 360.3428115234376,
+      "restart_s": 380.9428115234376,
       "note": ""
     },
     "79a6e3127882a733e84d": {
       "decision": "accepted",
       "time_s": 434.79281152343765,
+      "restart_s": 453.04281152343765,
       "note": ""
     },
     "6e9103da3cab84cd21fe": {
       "decision": "accepted",
       "time_s": 501.6428115234377,
+      "restart_s": 518.6928115234376,
       "note": ""
     },
     "8f3f6fc8182cda200769": {
       "decision": "accepted",
       "time_s": 53.70243481445311,
+      "restart_s": 84.70243481445311,
       "note": ""
     },
     "72e4d8456fbacc30f2f0": {
       "decision": "accepted",
       "time_s": 141.9024348144531,
+      "restart_s": 159.0024348144531,
       "note": ""
     },
     "f3f2baf95d9ef4b82ef5": {
       "decision": "accepted",
       "time_s": 204.0024348144531,
+      "restart_s": 229.90243481445307,
       "note": ""
     },
     "90304be53f1d78bbb3e1": {
       "decision": "accepted",
       "time_s": 281.20243481445306,
+      "restart_s": 303.802434814453,
       "note": ""
     },
     "a919aa799b750afdc5c5": {
       "decision": "accepted",
       "time_s": 349.65243481445304,
+      "restart_s": 376.10243481445303,
       "note": ""
     },
     "8641d4a7dad91eca25ac": {
       "decision": "accepted",
       "time_s": 430.85243481445303,
+      "restart_s": 448.202434814453,
       "note": ""
     },
     "360bab5d888f45109048": {
       "decision": "accepted",
       "time_s": 497.752434814453,
+      "restart_s": 549.0024348144531,
       "note": ""
     },
     "27029b9ca458fbd49fcb": {
       "decision": "accepted",
       "time_s": 63.21413891601564,
+      "restart_s": 95.21413891601566,
       "note": ""
     },
     "7680761cdc53f6b3921c": {
       "decision": "accepted",
       "time_s": 151.31413891601568,
+      "restart_s": 169.01413891601567,
       "note": ""
     },
     "d8563bab9a0b557e9fda": {
       "decision": "accepted",
       "time_s": 213.5141389160157,
+      "restart_s": 240.4141389160157,
       "note": ""
     },
     "c72b4ea008d82005e791": {
       "decision": "accepted",
       "time_s": 291.06413891601574,
+      "restart_s": 313.21413891601577,
       "note": ""
     },
     "dff8ef863242d40579d7": {
       "decision": "accepted",
       "time_s": 358.71413891601577,
+      "restart_s": 378.0141389160158,
       "note": ""
     },
     "011a2f1029e8bf345149": {
       "decision": "accepted",
       "time_s": 431.96413891601577,
+      "restart_s": 449.7641389160158,
       "note": ""
     },
     "728f4a62f5142fade04f": {
       "decision": "accepted",
       "time_s": 498.9641389160158,
+      "restart_s": 517.6141389160158,
       "note": ""
     },
     "f62b2e12aa6ca88079e7": {
       "decision": "accepted",
       "time_s": 70.72448461914063,
+      "restart_s": 93.27448461914062,
       "note": ""
     },
     "6734742fd14f9eb2e836": {
       "decision": "accepted",
       "time_s": 187.57448461914063,
+      "restart_s": 209.57448461914063,
       "note": ""
     },
     "76cf7392931c25d4129a": {
       "decision": "accepted",
       "time_s": 279.6244846191406,
+      "restart_s": 316.52448461914065,
       "note": ""
     },
     "6e359a5cc8b525ffbfd4": {
       "decision": "discarded",
       "time_s": 325.8244846191406,
+      "restart_s": 342.4244846191406,
       "note": ""
     },
     "692e1c40c13463ff1060": {
       "decision": "accepted",
       "time_s": 382.22448461914064,
+      "restart_s": 407.4244846191406,
       "note": ""
     },
     "d076b54e5d0105992db0": {
       "decision": "discarded",
       "time_s": 1.0265783691406252,
+      "restart_s": 9.326578369140625,
       "note": ""
     },
     "a77a1c0bcc0ce5775138": {
       "decision": "accepted",
       "time_s": 71.52657836914062,
+      "restart_s": 83.82657836914062,
       "note": ""
     },
     "27cdfa6a93e34afef1c2": {
       "decision": "discarded",
       "time_s": 1.0573137207031247,
+      "restart_s": 9.757313720703124,
       "note": ""
     },
     "8702f9e9fb1b0da59b45": {
       "decision": "discarded",
       "time_s": 4.914138916015626,
+      "restart_s": 15.01413891601563,
       "note": ""
     },
     "165f165e6f44efb13c6e": {
       "decision": "discarded",
       "time_s": 1.374484619140625,
+      "restart_s": 6.774484619140625,
       "note": ""
     },
     "90325341dd43fbf644f4": {
       "decision": "discarded",
       "time_s": 160.17448461914066,
+      "restart_s": 165.32448461914063,
       "note": ""
     },
     "21dd1d2e7064e00248c6": {
       "decision": "accepted",
       "time_s": 157.56761499023443,
+      "restart_s": 176.41761499023443,
       "note": ""
     },
     "9ed443464d28593b4a91": {
       "decision": "discarded",
       "time_s": 1.06854736328125,
+      "restart_s": 9.718547363281251,
       "note": ""
+    },
+    "manual-83eff363-d3d5-413c-a6bd-7c077b87e3b1": {
+      "decision": "accepted",
+      "time_s": 54.709,
+      "restart_s": 83.783,
+      "note": "",
+      "manual": true,
+      "recording": "L4_Les_Halles_-_Montparnasse_-2024-02-13_17-29-59"
+    },
+    "1289db512f99193b6f4a": {
+      "decision": "discarded",
+      "time_s": 3.2191425781250005,
+      "restart_s": 22.719142578125002,
+      "note": ""
+    },
+    "16d850c9aea1dc308c23": {
+      "decision": "accepted",
+      "time_s": 79.769142578125,
+      "restart_s": 95.61914257812501,
+      "note": ""
+    },
+    "e3c9033eed4c379a1754": {
+      "decision": "accepted",
+      "time_s": 146.519142578125,
+      "restart_s": 170.269142578125,
+      "note": ""
+    },
+    "0a940a7e288a89e51f25": {
+      "decision": "discarded",
+      "time_s": 1.0828098144531246,
+      "restart_s": 6.232809814453124,
+      "note": ""
+    },
+    "d39ff11bed89e4cfa059": {
+      "decision": "accepted",
+      "time_s": 56.28280981445311,
+      "restart_s": 71.2328098144531,
+      "note": ""
+    },
+    "833b61a54561b6515f96": {
+      "decision": "accepted",
+      "time_s": 119.3828098144531,
+      "restart_s": 141.0328098144531,
+      "note": ""
+    },
+    "a306b455c59e79035b75": {
+      "decision": "accepted",
+      "time_s": 197.83280981445307,
+      "restart_s": 220.88280981445305,
+      "note": ""
+    },
+    "e7aaa186a1a4a5f7815e": {
+      "decision": "accepted",
+      "time_s": 268.83280981445307,
+      "restart_s": 295.83280981445307,
+      "note": ""
+    },
+    "31564f45ff96097e884f": {
+      "decision": "accepted",
+      "time_s": 50.79701342773438,
+      "restart_s": 67.94701342773439,
+      "note": ""
+    },
+    "e46315c8004030bfef38": {
+      "decision": "accepted",
+      "time_s": 117.94701342773439,
+      "restart_s": 136.94701342773436,
+      "note": ""
+    },
+    "6b7f887dc7344275f2e4": {
+      "decision": "accepted",
+      "time_s": 196.49701342773437,
+      "restart_s": 217.74701342773437,
+      "note": ""
+    },
+    "5199790a0d6f9ada9747": {
+      "decision": "accepted",
+      "time_s": 267.5970134277344,
+      "restart_s": 287.8970134277344,
+      "note": ""
+    },
+    "d5bfcb70bb4886a9f2db": {
+      "decision": "accepted",
+      "time_s": 110.22403125000004,
+      "restart_s": 125.57403125000005,
+      "note": ""
+    },
+    "423685712ca4f55c0d12": {
+      "decision": "accepted",
+      "time_s": 183.02403125000006,
+      "restart_s": 213.22403125000008,
+      "note": ""
+    },
+    "manual-5b8f0121-c68c-4ef6-ba11-8c63dbd1c084": {
+      "decision": "accepted",
+      "time_s": 48.692,
+      "restart_s": 63.049,
+      "note": "",
+      "manual": true,
+      "recording": "L3_Sentier_-_St-Lazare_-_Yinv_-2024-06-28_16-31-47"
+    },
+    "9273130d1064c631d95e": {
+      "decision": "discarded",
+      "time_s": 260.47403125000005,
+      "restart_s": 297.774,
+      "note": ""
+    },
+    "624740cf121f8fcaf86b": {
+      "decision": "discarded",
+      "time_s": 277.52403125000006,
+      "restart_s": 297.77403125000006,
+      "note": ""
+    },
+    "manual-43b46dd5-e23d-4124-8110-45c56a30ea57": {
+      "decision": "accepted",
+      "time_s": 62.045,
+      "restart_s": 86.321,
+      "note": "",
+      "manual": true,
+      "recording": "L3_St-Lazare_-_Sentier_-2024-01-24_08-05-03"
+    },
+    "manual-7c4234ac-4a0d-43a6-aecf-d5509c057472": {
+      "decision": "accepted",
+      "time_s": 225.488,
+      "restart_s": 248.562,
+      "note": "",
+      "manual": true,
+      "recording": "L3_St-Lazare_-_Sentier_-2024-01-24_08-05-03"
+    },
+    "ed2a45061181adce77f6": {
+      "decision": "discarded",
+      "time_s": 315.97310156250006,
+      "restart_s": 327.2731015625001,
+      "note": ""
+    },
+    "manual-b8b51a78-7df6-483d-b588-3091f70313b5": {
+      "decision": "accepted",
+      "time_s": 299.517,
+      "restart_s": 326.197,
+      "note": "",
+      "manual": true,
+      "recording": "L3_St-Lazare_-_Sentier_-2024-01-24_08-05-03"
+    },
+    "manual-fec500d2-4165-4e86-b1c4-029a943c6faa": {
+      "decision": "accepted",
+      "time_s": 266.659,
+      "restart_s": 280.861,
+      "note": "",
+      "manual": true,
+      "recording": "L3_St-Lazare_-_Sentier_-2024-06-26_06-16-57"
+    },
+    "3292e4c9057735c4f45e": {
+      "decision": "discarded",
+      "time_s": 198.6619870605469,
+      "restart_s": 205.4119870605469,
+      "note": ""
+    },
+    "83fc6106aee8206da601": {
+      "decision": "discarded",
+      "time_s": 207.3119870605469,
+      "restart_s": 214.61198706054688,
+      "note": ""
+    },
+    "manual-c20f5297-eb00-4f03-88f7-e41a3adc331e": {
+      "decision": "accepted",
+      "time_s": 198.447,
+      "restart_s": 213.51,
+      "note": "",
+      "manual": true,
+      "recording": "L3_St-Lazare_-_Sentier_-2024-06-26_06-16-57"
+    },
+    "b53260ae265663670a0b": {
+      "decision": "accepted",
+      "time_s": 53.36198706054687,
+      "restart_s": 67.36198706054688,
+      "note": ""
+    },
+    "499cbf4b17bc2737d3f6": {
+      "decision": "accepted",
+      "time_s": 120.56198706054688,
+      "restart_s": 140.1619870605469,
+      "note": ""
+    },
+    "f37f9256e77ccdf1af90": {
+      "decision": "accepted",
+      "time_s": 138.1731015625,
+      "restart_s": 169.92310156250002,
+      "note": ""
+    },
+    "manual-392368f6-0811-4381-9646-69510ffe1c9a": {
+      "decision": "accepted",
+      "time_s": 260.637,
+      "restart_s": 296.757,
+      "note": "",
+      "manual": true,
+      "recording": "L3_Sentier_-_St-Lazare_-_Yinv_-2024-06-28_16-31-47"
     }
   }
 }

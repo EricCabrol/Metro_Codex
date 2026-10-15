@@ -1,0 +1,31 @@
+.review-global{position:sticky;top:0;background:#f4f8fb;border:1px solid #d2dce5;padding:14px;z-index:5;box-shadow:0 2px 8px #0001}
+.review-global p{margin:8px 0 0;font-size:13px}.review-global button{margin-right:10px}
+button{font:inherit;cursor:pointer;border:1px solid #b9c7d3;border-radius:5px;background:#fff;padding:6px 10px;color:#173548}
+button:hover{background:#e9f2fa}button:focus-visible,input:focus-visible{outline:3px solid #187bb6;outline-offset:2px}
+button:disabled{cursor:default;opacity:.5}.stop-review{background:#f8fafc;border:1px solid #dbe3eb;padding:18px;border-radius:8px;margin:20px 0;overflow-x:auto}
+.review-chart{display:block;width:100%;height:300px;margin:12px 0;border:1px solid #cbd5df}
+.review-table{width:100%;background:white}.review-table td{vertical-align:middle}
+.review-table input[type=number]{width:95px}.review-table input[type=text]{width:120px}
+.review-table input{padding:6px;border:1px solid #bdcbd6;border-radius:4px;font:inherit}
+.decision-controls{white-space:nowrap}.decision-controls button{font-size:12px;padding:6px;margin:2px}
+button[data-decision=accepted][aria-pressed=true]{background:#217a4c;color:white}
+button[data-decision=discarded][aria-pressed=true]{background:#a63d40;color:white}
+button[data-decision=pending][aria-pressed=true]{background:#f3df99}
+tr[data-decision=accepted]{background:#eef8f1}tr[data-decision=discarded]{background:#fff1f1}
+.review-count{font-weight:600;color:#254b67}details>summary{cursor:pointer;margin:14px 0}
+.stop-review{scroll-margin-top:110px}tr[data-selected=true] td:first-child{border-left:4px solid #0867a5}
+
+.trip-signal{border:1px solid #cbd5df;border-radius:8px;padding:12px;margin:14px 0;background:#f8fafc}.trip-signal summary{overflow-wrap:anywhere}.trip-extrema{font-size:14px}.trip-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.trip-toolbar input{width:95px;padding:6px}.trip-chart{display:block;width:100%;height:320px;touch-action:none;cursor:crosshair}.trip-chart text{font:12px system-ui;fill:#254b67}
+
+#report-contents{border:1px solid #cbd5df;border-radius:8px;padding:16px 22px;margin:20px 0;background:#f4f8fb}#report-contents a{overflow-wrap:anywhere}#report-contents li{margin:6px 0}#report-contents>h2{margin-top:0}.review-global>a{margin-right:12px}h2[id],article[id],section[id],details[id],.stop-review[id]{scroll-margin-top:var(--report-scroll-offset,160px)}
+
+.duration-warning{background:#fff3cd;border-left:4px solid #b37800;padding:12px;color:#684600}.run-duration{font-size:14px;color:#254b67}
+.has-duration-warning>summary{color:#805300;font-weight:600}.has-duration-warning{border-color:#b37800}
+
+.manual-stop-form{border:1px solid #187bb6;border-radius:6px;padding:12px;margin:12px 0;background:#edf5fc}.manual-stop-form[hidden]{display:none}.manual-stop-form label{display:inline-block;margin:6px}.manual-stop-form input{padding:6px;width:120px}.manual-stop-form button{margin:6px}.manual-stop-error{color:#a63d40}.selecting-stop{cursor:crosshair;touch-action:none}
+
+.continuity-warning { border-left: 4px solid #b45309; background: #fff4dd; padding: 12px 16px; margin: 12px 0; }
+
+.route-checks-table .stop-count-mismatch{background:#fff1f1;color:#a32323}.route-checks-table .stop-count-mismatch a{color:inherit}
+
+#run-comparison-charts>label{display:block;margin:16px 0;font-weight:600}#run-comparison-charts select{font:inherit;max-width:100%;padding:8px;border:1px solid #b9c7d3;border-radius:5px;background:white}.run-comparison-panel{border:1px solid #cbd5df;border-radius:8px;padding:18px;background:#f8fafc}.run-comparison-panel h3{margin:0 0 8px}.comparison-description{font-size:14px;color:#254b67}.run-comparison-chart{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}.run-comparison-chart text{font:13px system-ui;fill:#254b67}.comparison-legend{display:grid;gap:8px;margin:12px 0}.comparison-legend-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:14px}.comparison-legend-row label{display:flex;align-items:center;gap:8px}.comparison-swatch{display:inline-block;width:30px;border-top:3px solid}.comparison-legend-row input{width:17px;height:17px}

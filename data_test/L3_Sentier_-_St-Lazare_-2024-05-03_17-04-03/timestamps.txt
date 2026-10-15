@@ -1,0 +1,9 @@
+Timestamps for trip L3_Sentier_-_St-Lazare_-2024-05-03_17-04-03
+117.8514617 stop
+140.8111481 start
+196.5392083 stop
+220.3908753 start
+278.2670165 stop
+295.4332783 start
+350.6122023 end
+0.7720375788602432 avg accel
