@@ -151,6 +151,13 @@
     const zoomButton = element('button','Zoom to selected stop'); zoomButton.type='button';
     toolbar.append(zoomButton); card.append(toolbar);
     const canvas = element('canvas',undefined,'review-chart'); canvas.setAttribute('aria-label','Acceleration and stop evidence around selected candidate'); card.append(canvas);
+    const acceptAll=element('button','Accept all');acceptAll.type='button';
+    acceptAll.title='Accept all pending stops in this recording. Discarded stops remain excluded.';
+    toolbar.append(acceptAll);
+    acceptAll.onclick=()=>{
+      for(const c of own)if(state(c).decision==='pending')decisions[c.id]={...state(c),decision:'accepted'};
+      refresh();save();
+    };
     const manualButton=element('button','Add manual stop');manualButton.type='button';toolbar.append(manualButton);
     const form=element('form',undefined,'manual-stop-form');form.hidden=true;
     form.append(element('p','Drag across the chart to select arrival and restart, or enter their recording timestamps below. Save only after checking both boundaries.'));
@@ -185,11 +192,14 @@
     const body = element('tbody'); table.append(body); card.append(table);
     const refresh = () => {
       for(const c of own) if(c.manual) Object.assign(c,manualCandidate(c.id,state(c)));
+      acceptAll.disabled=!own.some(c=>state(c).decision==='pending');
       updateCount(card,recording); draw(canvas,recording,selected,zoom,selection);
       for(const c of [...own].sort((a,b)=>state(a).time_s-state(b).time_s)) {
         const row=body.querySelector(`[data-candidate-id="${c.id}"]`);
         if(row){body.append(row);row.dataset.selected=String(selected?.id===c.id);
           const current=state(c), duration=current.restart_s-current.time_s;
+          row.dataset.decision=current.decision;
+          row.querySelectorAll('.decision-controls button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.decision===current.decision)));
           const focus=row.querySelector('.candidate-focus');
           focus.textContent=`${current.time_s.toFixed(1)}–${current.restart_s.toFixed(1)}s${c.manual?' · manual':''}`;
           focus.title=c.manual?'Manually defined stop':`Original detection: ${c.start_s.toFixed(3)}–${c.end_s.toFixed(3)} s (${c.duration_s.toFixed(1)} s)`;
