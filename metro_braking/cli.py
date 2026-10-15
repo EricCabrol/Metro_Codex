@@ -1,5 +1,4 @@
 import argparse
-import hashlib
 import html
 import json
 from pathlib import Path
@@ -11,13 +10,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from .analysis import load_recording, detect_events, detect_stops, check_orientation, apply_reviews, sensor_inventory, split_sections
-from .routes import route_from_name, compare_stop_count, CATALOG, display_recording_name
-from .review import report_payload, serve_report, candidate_id
+from .routes import CATALOG, display_recording_name
+from .review import report_payload, serve_report
 from .trip_acceleration import write_trip_acceleration
-from .runs import build_runs, duration_statistics
+from .runs import duration_statistics
 from .manual_stops import initial_decisions_from_rows, review_candidates
 from .recordings import available_review_rows
+from .processing import analyze_recording
+from .cache import RecordingCache, source_files, processing_version, recording_signature
 
 
 def validate_config(config):
@@ -44,48 +44,6 @@ def validate_config(config):
     cutoffs = config["sensitivity_cutoffs_hz"] + [config["cutoff_hz"]]
     if not cutoffs or any(not np.isfinite(c) or not 0 < c < config["sample_hz"] / 2 for c in cutoffs):
         raise ValueError("All cutoffs must be positive and below target Nyquist")
-
-
-def diagnostic_plot(segments, summary, events, quiet, folder, output, stop_diagnostics):
-    fig, axes = plt.subplots(4, 1, figsize=(14, 12), constrained_layout=True, sharex=True)
-    for block, s in enumerate(segments):
-        for i, name in enumerate(("x", "y", "z")):
-            axes[0].plot(s.t, s.filtered_xyz[:, i], label=name if block == 0 else None, lw=0.8)
-        axes[1].plot(s.t, s.projected, color="0.8", lw=0.5, label="resampled" if block == 0 else None)
-        axes[1].plot(s.t, s.filtered, color="black", lw=1, label="filtered" if block == 0 else None)
-        axes[2].plot(s.t, np.gradient(s.filtered, s.t), color="teal", lw=0.7)
-    for diagnostic in stop_diagnostics:
-        axes[3].plot(diagnostic["t"], diagnostic["variation"], color="darkgreen", lw=0.7)
-        axes[3].plot(diagnostic["t"], diagnostic["baseline_distance"], color="0.7", lw=0.6)
-        for rejected in diagnostic["rejected_dwells"]:
-            axes[3].axvspan(rejected["start_s"], rejected["end_s"], color="orange", alpha=0.12)
-    axes[3].set(xlabel="Seconds since recording start", ylabel="Raw variation / baseline distance (m/s²)")
-    axes[3].axhline(summary["stop_variation_threshold_mps2"], color="0.4", ls=":", lw=0.8)
-    for event in events:
-        axes[1].axvspan(event["start_s"], event["end_s"], alpha=0.18,
-                       color="red" if event["sign"] < 0 else "blue")
-    for q in quiet:
-        for ax in (axes[1], axes[3]):
-            ax.axvspan(q["start_s"], q["end_s"], color="green", alpha=0.15)
-        axes[3].annotate(f'{q["duration_s"]:.0f}s', (q["start_s"], 0), fontsize=7)
-    annotation = folder / "Annotation.csv"
-    if annotation.exists() and annotation.stat().st_size:
-        annotations = pd.read_csv(annotation)
-        for _, row in annotations.iterrows():
-            if str(row.get("text", "")).lower() == "stop":
-                axes[1].axvline(float(row.seconds_elapsed), color="purple", ls="--", lw=1)
-                axes[3].axvline(float(row.seconds_elapsed), color="purple", ls="--", lw=1)
-    axes[0].set_ylabel("Filtered XYZ (m/s²)")
-    axes[1].set_ylabel("Forward acceleration (m/s²)")
-    axes[2].set_ylabel("Jerk (m/s³)")
-    for ax in axes:
-        ax.set_xlabel("Seconds since recording start")
-        ax.grid(alpha=0.2)
-    axes[0].legend(loc="upper right")
-    axes[1].legend(loc="upper right")
-    fig.suptitle(display_recording_name(summary["recording"]) + "\n" + summary["quality_flags"], fontsize=9)
-    fig.savefig(output, dpi=120)
-    plt.close(fig)
 
 
 def write_csv(rows, path, columns=None):
@@ -148,7 +106,7 @@ def continuity_notice(summary):
     return '<aside class="continuity-warning"><strong>Recording quality warning: missing samples</strong>' + "".join(notices) + '<p>Measurements crossing gaps are unavailable. Check this recording before comparing runs.</p></aside>'
 
 
-def report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trips=None, stops=None, data_directory=None):
+def report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trips=None, stops=None, data_directory=None, processing=None):
     event_frame = pd.DataFrame(events)
     cells = []
     for i, summary in enumerate(summaries):
@@ -189,6 +147,8 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     text = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Metro braking analysis</title><link rel="stylesheet" href="report_ui.css">'
     text += '<style>body{font:16px system-ui;max-width:1400px;margin:30px auto;padding:0 20px;color:#17202a}img{max-width:100%}table{border-collapse:collapse;font-size:12px}td,th{padding:6px;border:1px solid #ddd}article{margin:40px 0} .warning{background:#fff3cd;padding:18px}</style>'
     text += '<h1>Metro braking exploration</h1>'
+    if processing is not None:
+        text += f'<p>Incremental processing: <strong>{len(processing["reused"])} recording(s) reused</strong>, {len(processing["processed"])} recomputed. Source files and reviews are checked before reuse; aggregate statistics and the report are refreshed.</p>'
     text += report_contents(summaries, bool(failures))
     text += '<div class="review-global"><a href="#report-contents">Contents</a><button id="download-stops" type="button">Download reviewed stops CSV</button><button id="export-sections" type="button" disabled>Export sections from accepted stops</button><a id="section-index" hidden>Open section index</a><p id="review-save-status" role="status">Loading review controls…</p></div>'
     text += f'<section id="global-statistics"><h2>Global Statistics</h2><p>Maximum filtered deceleration magnitude for each run, grouped by metro line. Orange: {config.get("trip_window_seconds", 30):g} seconds starting {config.get("trip_restart_offset_seconds", .5):g} s after validated restart. Purple: the last {config.get("arrival_window_seconds", 20):g} seconds before the next validated arrival. Each window contributes independently when valid, including on partial runs; missing or incomplete windows and windows without negative acceleration are excluded. All directions and interstations on a line are pooled.</p><img id="global-statistics-plot" src="global_statistics.png" alt="Boxplots of maximum departure and pre-arrival deceleration for each metro line"><p>Box: 25th–75th percentiles; center line: median; whiskers: extreme values within 1.5 times the interquartile range. Dots show every included run; n is the number of valid measurements. Small samples remain visible and should be interpreted cautiously. <a href="global_statistics.csv">Download statistics and excluded counts CSV</a>.</p></section>'
@@ -214,6 +174,8 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     if data_directory is not None:
         payload["data_directory"] = str(data_directory)
     payload["trips"] = trips or []
+    if processing is not None:
+        payload["processing"] = processing
     for recording in payload["recordings"]:
         recording["display_name"] = display_recording_name(recording["recording"])
     text += '<section id="run-comparisons"><h2>Compare the same interstation run</h2><p>Overlay complete validated runs on the same line and directed station pair. Time zero is the validated restart; time is not stretched to match arrivals. Partial runs and runs without confirmed station assignments are excluded. Use the checkboxes to hide individual signals, drag or scroll to zoom, and click a recording name to inspect its run.</p><div id="run-comparison-charts"></div></section>'
@@ -229,6 +191,8 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
 def main():
     parser = argparse.ArgumentParser(description="Analyze copied SensorLogger recordings")
     parser.add_argument("--allow-empty", action="store_true", help="Allow an empty report when all recordings are archived")
+    parser.add_argument("--cache-dir", type=Path, help="Reusable per-recording results (default: OUTPUT/.recording_cache)")
+    parser.add_argument("--reprocess", action="store_true", help="Recompute recordings even when unchanged cached results exist")
     parser.add_argument("--data", type=Path, default=Path("data_test"))
     parser.add_argument("--output", type=Path, default=Path("results"))
     parser.add_argument("--config", type=Path, default=Path("config.json"))
@@ -252,8 +216,12 @@ def main():
     if not folders and not args.allow_empty:
         parser.error("No recording folders found")
     reviews = pd.read_csv(args.reviews, keep_default_na=False) if args.reviews else pd.DataFrame()
-    stops = pd.read_csv(args.stops, keep_default_na=False) if args.stops else pd.DataFrame()
-    if args.stops and not {"recording", "time_s", "accepted"}.issubset(stops):
+    stop_file = args.stops
+    if stop_file is None and (args.review_dir / "stops.csv").is_file():
+        stop_file = args.review_dir / "stops.csv"
+        print(f"Using saved stop reviews: {stop_file}", flush=True)
+    stops = pd.read_csv(stop_file, keep_default_na=False) if stop_file else pd.DataFrame()
+    if stop_file and not {"recording", "time_s", "accepted"}.issubset(stops):
         parser.error("Stops CSV requires recording,time_s,accepted")
     all_stops = stops.to_dict("records")
     all_reviews = reviews.to_dict("records")
@@ -271,62 +239,41 @@ def main():
     orientation_checks = []
     rejected_dwells = []
     series = {}
+    cache_directory = (args.cache_dir or output / ".recording_cache").resolve()
+    if cache_directory == data or data in cache_directory.parents:
+        parser.error("Cache and source data directories must be separate")
+    cache = RecordingCache(cache_directory)
+    version = processing_version()
+    processing = {"reused": [], "processed": []}
     for folder in folders:
-        print(f"Analyzing {folder.name}", flush=True)
-        for file in sorted(folder.iterdir()):
-            if file.is_file():
-                manifest.append({"file": str(file.relative_to(data)), "bytes": file.stat().st_size,
-                                 "sha256": hashlib.sha256(file.read_bytes()).hexdigest()})
         try:
-            sensors.extend(sensor_inventory(folder))
-            segments, summary = load_recording(folder, config)
-            summary.update(route_from_name(folder.name))
-            intervals, stop_diagnostics, stop_summary = detect_stops(folder, config)
-            summary.update(stop_summary)
-            rejected_dwells.extend(q for d in stop_diagnostics for q in d["rejected_dwells"])
-            summary["stop_variation_threshold_mps2"] = config["quiet_threshold_mps2"]
-            orientation_checks.extend(check_orientation(summary, intervals, stop_diagnostics, config))
-            summary.update(compare_stop_count(summary, intervals))
-            series[folder.name] = {
-                "acceleration": [[[round(float(t), 3), round(float(a), 4)] for t, a in zip(s.t, s.filtered)] for s in segments],
-                "stops": [[[round(float(t), 3), round(float(v), 4) if np.isfinite(v) else None,
-                            round(float(b), 4) if np.isfinite(b) else None]
-                           for t, v, b in zip(d["t"], d["variation"], d["baseline_distance"])] for d in stop_diagnostics]}
-            candidates, _ = detect_events(segments, summary, config)
-            for candidate in candidates:
-                candidate["quiet_follows"] = any(0 <= q["start_s"] - candidate["end_s"] <= 8 for q in intervals)
-            candidates = apply_reviews(candidates, segments, summary, config, reviews)
-            diagnostic_plot(segments, summary, candidates, intervals, folder, output / "plots" / f"{len(summaries):02d}.png", stop_diagnostics)
-            stop_signal = [pd.DataFrame({"seconds_elapsed": d["t"], "block": d["block"],
-                            "uncalibrated_variation_mps2": d["variation"],
-                            "baseline_distance_mps2": d["baseline_distance"]}) for d in stop_diagnostics]
-            stop_output = output / f"stop_signal_{len(summaries):02d}.csv"
-            if stop_signal:
-                pd.concat(stop_signal).to_csv(stop_output, index=False)
+            files = source_files(folder)
+            manifest.extend(dict(file=str(Path(folder.name)/row["file"]), bytes=row["bytes"], sha256=row["sha256"]) for row in files)
+            signature = recording_signature(folder.name, files, config, reviews, stops, version)
+            result = None if args.reprocess else cache.load(folder.name, signature)
+            reused = result is not None
+            if result is None:
+                print(f"Analyzing {folder.name}", flush=True)
+                def build(target):
+                    computed = analyze_recording(folder, config, reviews, stops, target)
+                    if source_files(folder) != files:
+                        raise ValueError("Source files changed during analysis; retry with a stable recording")
+                    return computed
+                result = cache.process(folder.name, signature, build)
             else:
-                write_csv([], stop_output, columns=["seconds_elapsed", "block", "uncalibrated_variation_mps2"])
-            signal = pd.concat([pd.DataFrame({"seconds_elapsed": s.t, "block": i,
-                         "axis_resampled_mps2": s.projected, "axis_filtered_mps2": s.filtered,
-                         "jerk_mps3": np.gradient(s.filtered, s.t)}) for i, s in enumerate(segments)])
-            signal.to_csv(output / f"signal_{len(summaries):02d}.csv", index=False)
-            if not stops.empty:
-                own_stops = stops[stops.recording == folder.name]
-                own_metrics, own_charts = build_runs(folder.name, signal, own_stops,
-                    [dict(q, id=candidate_id(q)) for q in intervals + [q for d in stop_diagnostics for q in d["rejected_dwells"]]], config, summary)
-                trip_metrics.extend(own_metrics)
-                trip_charts.extend(own_charts)
-                for number, start, end, section in split_sections(signal, own_stops):
-                    sections_folder = output / "sections"
-                    sections_folder.mkdir(exist_ok=True)
-                    filename = f"sections/{len(summaries):02d}_{number:03d}.csv"
-                    section.to_csv(output / filename, index=False)
-                    section_inventory.append({"recording": folder.name, "section": number,
-                         "start_s": start, "end_s": end, "file": filename,
-                         "contains_gap": section.block.nunique() > 1})
-            summary["signal_file"] = f"signal_{len(summaries):02d}.csv"
-            summaries.append(summary)
-            events.extend(candidates)
-            quiet.extend(intervals)
+                print(f"Reusing {folder.name}", flush=True)
+            cache.materialize(folder.name, signature, result, output, len(summaries))
+            processing["reused" if reused else "processed"].append(folder.name)
+            summaries.append(result["summary"])
+            events.extend(result["events"])
+            quiet.extend(result["quiet"])
+            sensors.extend(result["sensors"])
+            orientation_checks.extend(result["orientation_checks"])
+            rejected_dwells.extend(result["rejected_dwells"])
+            trip_metrics.extend(result["metrics"])
+            trip_charts.extend(result["charts"])
+            section_inventory.extend(result["sections"])
+            series[folder.name] = result["series"]
         except (ValueError, OSError, KeyError, pd.errors.ParserError) as error:
             failures.append({"recording": folder.name, "error": str(error)})
             print(f"FAILED: {error}", flush=True)
@@ -351,7 +298,8 @@ def main():
         write_csv([], output / "label_summary.csv", columns=["label", "count"])
     review_rows = [{k: e[k] for k in ("recording", "event_id", "start_s", "end_s", "sign", "label")} | {"accepted": True} for e in events]
     write_csv(review_rows, output / "review_template.csv", columns=["recording", "event_id", "start_s", "end_s", "sign", "accepted", "label"])
-    manifest_out = {"configuration": config, "source_files": manifest, "failures": failures,
+    manifest_out = {"cache_directory": str(cache_directory), "processing": processing,
+                    "reviewed_stops_file": str(stop_file.resolve()) if stop_file else None, "configuration": config, "source_files": manifest, "failures": failures,
                     "reviews": reviews.to_dict("records"), "reviewed_stops": stops.to_dict("records"),
                     "all_reviews": all_reviews, "all_reviewed_stops": all_stops,
                     "ignored_stop_recordings": ignored_stops, "ignored_review_recordings": ignored_reviews,
@@ -359,7 +307,8 @@ def main():
                     "versions": {"numpy": np.__version__, "pandas": pd.__version__,
                                  "scipy": __import__("scipy").__version__, "matplotlib": matplotlib.__version__}}
     (output / "manifest.json").write_text(json.dumps(manifest_out, indent=2), encoding="utf-8")
-    report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trip_charts, stops, data)
+    report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trip_charts, stops, data, processing)
+    print(f"Incremental processing: {len(processing['reused'])} reused, {len(processing['processed'])} recomputed", flush=True)
     print(f"Finished: {len(summaries)} recordings, {len(events)} events, {len(failures)} failures. {output / 'report.html'}")
     if failures:
         raise SystemExit(1)

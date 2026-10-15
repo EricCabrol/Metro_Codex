@@ -377,3 +377,37 @@ is the median, and whiskers extend to the most extreme observations within 1.5
 interquartile ranges. Every group displays its valid sample count, including zero.
 `global_statistics.csv` contains counts, exclusions and distribution summaries.
 The plots refresh on section export and when recordings are archived or restored.
+
+## Incremental processing and saved validations
+
+Analysis now saves each successful recording separately. On later runs it checks
+source content, the recording's own stop/event reviews, processing parameters,
+analysis code and dependency versions. Unchanged recordings reuse their filtered
+signals, detections, metrics and diagnostic plots. Adding a new recording only
+processes that recording; its position in the sorted report does not change the
+identity of previous results. Global plots/statistics and report pages are always
+rebuilt to include the current dataset.
+
+Stop decisions saved by the review server remain in `reviews/stops.json` and
+`reviews/stops.csv`. If `--stops` is omitted, the CLI automatically uses
+`--review-dir/stops.csv` when present (`reviews/stops.csv` by default). An explicit
+`--stops` still selects another file. With this default workflow, after adding
+recording folders simply rerun:
+
+```powershell
+python -m metro_braking --output results_reviewed
+```
+
+The console and report show how many recordings were reused or recomputed.
+Changing one recording's reviews or source data only invalidates that recording;
+changes to common processing parameters invalidate every affected recording.
+Rendering changes alone do not invalidate the analysis cache. Archived recordings
+keep their cache and reviews available for restoration. Raw source files stay in
+their original folders; reusing saved results does not move or delete them.
+
+The first run after this update must build the cache. Default storage is
+`OUTPUT/.recording_cache`; use `--cache-dir PATH` to share results between report
+folders. Snapshots are checked for missing/corrupt artifacts and rebuilt when
+necessary. `--reprocess` forces recalculation of all active recordings. Cache
+snapshots can be deleted to reclaim disk space; keep the review files to preserve
+validation decisions. `manifest.json` records the cache path and processing summary.

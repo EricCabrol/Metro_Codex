@@ -103,6 +103,9 @@ class RecordingTests(unittest.TestCase):
             self.assertEqual(source.read_bytes(), original)
             self.assertEqual(store.read()['decisions']['manual-fixture']['decision'], 'accepted')
             self.assertEqual(store.recordings()['archived'], [])
+            processing = json.loads((output/'manifest.json').read_text())['processing']
+            self.assertEqual(processing['reused'], ['fixture'])
+            self.assertEqual(processing['processed'], [])
 
 
 if __name__ == '__main__':

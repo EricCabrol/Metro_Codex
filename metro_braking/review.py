@@ -172,6 +172,7 @@ class ReviewStore:
             staged = work / "report"
             command = [sys.executable, "-m", "metro_braking", "--data", self.payload()["data_directory"],
                        "--output", str(staged), "--config", str(config), "--allow-empty",
+                       "--cache-dir", manifest.get("cache_directory", str(self.output / ".recording_cache")),
                        "--stops", str(self.review_dir / "stops.csv")]
             events = manifest.get("all_reviews", manifest.get("reviews", []))
             if events:

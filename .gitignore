@@ -5,3 +5,5 @@ data_test/
 results/
 
 data_test_archive/
+
+.recording_cache/
