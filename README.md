@@ -199,6 +199,24 @@ warnings are diagnostics for review, not automatic rejection or reassignment.
 Warnings are visible in collapsed chart headings and the contents navigation.
 Statistics and station labels are rebuilt from all current saved decisions on export.
 
+The report also measures **maximum pre-arrival deceleration** independently of
+the departure metrics: the positive magnitude of the most negative filtered
+forward acceleration in `[next accepted arrival - 20 s, next accepted arrival)`.
+Set `arrival_window_seconds` in `config.json` to change this duration. The full
+window must be observed, remain within the run, and contain no signal gaps.
+A purple marker and purple shading identify the measurement and its window;
+a purple line marks the next accepted arrival. The Before arrival button zooms
+to this window. Values, peak timestamp, window bounds and status are exported in
+`trip_acceleration.csv` as `max_arrival_deceleration_mps2`,
+`arrival_deceleration_peak_time_s` and `arrival_deceleration_status`.
+A partial start can still have a measured pre-arrival deceleration when its last
+20 seconds are recorded. A partial end with no validated arrival yields
+`arrival_not_identified`, not a measurement anchored arbitrarily to recording end.
+In particular the supplied L13 file ends at about 155.64 s before a Pernety stop
+is identifiable; the plot cannot be extended beyond the recorded samples.
+Review station stop charts initially show the full recording; selecting a stop
+or using Zoom to selected stop still enables focused review.
+
 The report starts with a clickable table of contents linking to each section,
 recording review, diagnostic panel and individual interstation run. Links open
 collapsed target panels automatically; the sticky Contents link returns to the top.

@@ -19,6 +19,9 @@ from .runs import build_runs, duration_statistics
 
 
 def validate_config(config):
+    arrival_window = config.get("arrival_window_seconds", 20)
+    if not np.isfinite(arrival_window) or arrival_window <= 0:
+        raise ValueError("arrival_window_seconds must be finite and positive")
     offset = config.get("trip_restart_offset_seconds", 0.5)
     if not np.isfinite(offset) or offset < 0:
         raise ValueError("trip_restart_offset_seconds must be finite and nonnegative")
@@ -169,7 +172,7 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     payload["trips"] = trips or []
     for recording in payload["recordings"]:
         recording["display_name"] = display_recording_name(recording["recording"])
-    text += '<section id="trip-signals"><h2>Filtered signal for each validated interstation run</h2><p>Blue: maximum acceleration. Orange: maximum deceleration. Shading marks the measurement window. Drag across a chart or use the mouse wheel to zoom in time; exact time bounds and reset buttons are also available.</p><p>Station names inferred from stop order when accepted stop counts match the route. Partial edge runs are identified explicitly. Running durations exclude station dwell; warnings compare the same directed interstation on the same line, using the sample standard deviation and at least three complete runs. Fewer samples are marked insufficient. The rule is a diagnostic, not proof of an incorrect station assignment.</p><p><a href="run_durations.csv">Download running-duration statistics</a></p><div id="trip-charts"></div></section>'
+    text += '<section id="trip-signals"><h2>Filtered signal for each validated interstation run</h2><p>Blue: departure-window maximum acceleration. Orange: departure-window maximum deceleration. Purple: maximum deceleration in the configured window before the next validated arrival (20 seconds by default). Blue and purple shading identify the two measurement windows; a purple vertical line marks the next arrival. If arrival is not identified, no pre-arrival measurement is inferred from the recording end. Drag across a chart or use the mouse wheel to zoom in time; exact time bounds and reset buttons are also available.</p><p>Station names inferred from stop order when accepted stop counts match the route. Partial edge runs are identified explicitly. Running durations exclude station dwell; warnings compare the same directed interstation on the same line, using the sample standard deviation and at least three complete runs. Fewer samples are marked insufficient. The rule is a diagnostic, not proof of an incorrect station assignment.</p><p><a href="run_durations.csv">Download running-duration statistics</a></p><div id="trip-charts"></div></section>'
     encoded = json.dumps(payload, allow_nan=False, default=lambda v: v.item(), separators=(",", ":"))
     (output / "report_data.json").write_text(encoded, encoding="utf-8")
     text += ''.join(cells) + '<script id="review-data" type="application/json">' + encoded.replace("<", "\\u003c") + '</script><script src="trip_charts.js"></script><script src="report_ui.js"></script></html>'

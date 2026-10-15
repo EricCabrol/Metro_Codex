@@ -48,6 +48,7 @@
     const span = selected ? selected.end_s - selected.start_s : 0;
     const lo = selected && zoom ? Math.max(recording.start_s, selected.start_s - 20) : recording.start_s;
     const hi = selected && zoom ? Math.min(recording.end_s, selected.end_s + 20) : recording.end_s;
+    canvas.dataset.viewStart = lo; canvas.dataset.viewEnd = hi;
     const x = t => left + (t - lo) / (hi - lo) * (right - left);
     const traces = data.series[recording.recording] || {};
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height);
@@ -90,9 +91,9 @@
     const heading = element('h3','Review station stops'); card.append(heading);
     card.append(element('p','Select a candidate to inspect its surrounding signal. Accept confirms a station stop; discard excludes it. Short candidates can be accepted after inspection. Restart defaults to the end of the accepted stop; adjust it if necessary.'));
     card.append(element('p','', 'review-count'));
-    let selected = own[0] || null, zoom = true;
+    let selected = own[0] || null, zoom = false;
     const toolbar = element('div', undefined, 'review-toolbar');
-    const zoomButton = element('button','Show full recording'); zoomButton.type='button';
+    const zoomButton = element('button','Zoom to selected stop'); zoomButton.type='button';
     toolbar.append(zoomButton); card.append(toolbar);
     const canvas = element('canvas',undefined,'review-chart'); canvas.setAttribute('aria-label','Acceleration and stop evidence around selected candidate'); card.append(canvas);
     const table = element('table',undefined,'review-table');

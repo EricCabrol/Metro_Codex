@@ -4,7 +4,7 @@ import pandas as pd
 
 from .analysis import split_sections
 from .routes import route_from_name, display_recording_name
-from .trip_acceleration import trip_acceleration, trip_chart, resolve_restart
+from .trip_acceleration import trip_acceleration, trip_chart, resolve_restart, arrival_deceleration
 
 
 def build_runs(recording, signal, stop_rows, candidates, config):
@@ -55,6 +55,9 @@ def build_runs(recording, signal, stop_rows, candidates, config):
             metric.update(restart_s=None, window_start_s=None, window_end_s=None,
                           max_acceleration_mps2=None, peak_time_s=None, max_deceleration_mps2=None,
                           deceleration_peak_time_s=None, status="departure_not_identified", deceleration_status="incomplete_window")
+        metric.update(arrival_deceleration(section, start,
+                      None if coverage == "arrival_not_identified" else end,
+                      config.get("arrival_window_seconds", 20)))
         label = f"{origin} – {destination}" if origin and destination else f"Interstation run {number}"
         metric.update(display_recording=display_recording_name(recording), run_label=label,
                       origin_station=origin, destination_station=destination, line=route.get("line"),
@@ -62,7 +65,10 @@ def build_runs(recording, signal, stop_rows, candidates, config):
                       coverage=coverage, duration_s=end-start if coverage == "complete" else None,
                       duration_eligible=(coverage == "complete" and bool(origin and destination) and section.block.nunique() == 1))
         metrics.append(metric)
-        charts.append(trip_chart(metric, section))
+        # Include the signal up to the validated arrival, even when the analysis
+        # window near departure ends much earlier. Never extend beyond observed data.
+        chart_signal = signal[(signal.seconds_elapsed >= start) & (signal.seconds_elapsed <= end)]
+        charts.append(trip_chart(metric, chart_signal))
 
     for number, arrival, end, section in split_sections(signal, accepted):
         restart = resolve_restart(accepted, arrival, own_candidates)

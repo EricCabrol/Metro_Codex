@@ -10,7 +10,9 @@ FIELDS = ["recording", "section", "start_s", "restart_s", "arrival_s", "end_s", 
           "max_acceleration_mps2", "peak_time_s", "status",
           "max_deceleration_mps2", "deceleration_peak_time_s", "deceleration_status", "display_recording", "run_label", "origin_station", "destination_station",
           "line", "station_assignment", "coverage", "duration_s", "duration_eligible",
-          "duration_sample_count", "duration_mean_s", "duration_std_s", "duration_warning", "duration_check_status"]
+          "duration_sample_count", "duration_mean_s", "duration_std_s", "duration_warning", "duration_check_status",
+          "next_arrival_s", "arrival_window_seconds", "arrival_window_start_s", "arrival_window_end_s",
+          "max_arrival_deceleration_mps2", "arrival_deceleration_peak_time_s", "arrival_deceleration_status"]
 
 def window_status(signal, window, start, end):
     """Check finite values and continuous coverage without interpolating gaps."""
@@ -124,3 +126,32 @@ def resolve_restart(stop_rows, arrival_s, candidates):
     if not np.isfinite(restart) or restart < arrival_s:
         raise ValueError("Restart time must be finite and at or after arrival")
     return restart
+
+
+def arrival_deceleration(signal, run_start, next_arrival, window_seconds=20):
+    """Measure negative filtered acceleration in [arrival-window, arrival)."""
+    if not np.isfinite(window_seconds) or window_seconds <= 0:
+        raise ValueError("arrival_window_seconds must be finite and positive")
+    result = dict(next_arrival_s=next_arrival, arrival_window_seconds=window_seconds,
+                  arrival_window_start_s=None, arrival_window_end_s=next_arrival,
+                  max_arrival_deceleration_mps2=None, arrival_deceleration_peak_time_s=None,
+                  arrival_deceleration_status="arrival_not_identified")
+    if next_arrival is None:
+        return result
+    start = next_arrival-window_seconds
+    result["arrival_window_start_s"] = start
+    if start < run_start:
+        result["arrival_deceleration_status"] = "short_run"
+        return result
+    window = signal[(signal.seconds_elapsed >= start) & (signal.seconds_elapsed < next_arrival)]
+    result["arrival_deceleration_status"] = window_status(signal, window, start, next_arrival)
+    if result["arrival_deceleration_status"] != "complete":
+        return result
+    values = window.axis_filtered_mps2.to_numpy(dtype=float)
+    index = int(np.argmin(values))
+    if values[index] >= 0:
+        result["arrival_deceleration_status"] = "no_deceleration"
+        return result
+    result["max_arrival_deceleration_mps2"] = -float(values[index])
+    result["arrival_deceleration_peak_time_s"] = float(window.seconds_elapsed.iloc[index])
+    return result

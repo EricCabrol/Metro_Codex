@@ -1,4 +1,5 @@
 {
+  "arrival_window_seconds": 20.0,
   "trip_restart_offset_seconds": 0.5,
   "trip_window_seconds": 30.0,
   "sample_hz": 20.0,

@@ -24,6 +24,7 @@ def report_payload(summaries, quiet, rejected, config, series):
     candidates += [dict(row, id=candidate_id(row), automatic=False) for row in rejected]
     return {"version": 1, "minimum_stop_seconds": config["minimum_stop_seconds"],
             "trip_window_seconds": config.get("trip_window_seconds", 30),
+            "arrival_window_seconds": config.get("arrival_window_seconds", 20),
             "trip_restart_offset_seconds": config.get("trip_restart_offset_seconds", 0.5),
             "recordings": summaries, "candidates": candidates, "series": series}
 

@@ -46,7 +46,7 @@
       const description = document.createElement('p'); description.className = 'trip-extrema';
       const format = (value, time) => value === null ? 'not measured' : `${value.toFixed(4)} m/s² at ${(time - m.start_s).toFixed(3)} s`;
       const windowLabel = restartKnown ? `Restart: ${m.restart_s.toFixed(3)} s in recording. Analysis: ${(m.window_start_s-origin).toFixed(3)}–${(m.window_end_s-origin).toFixed(3)} s after restart` : 'Departure not identified: extrema unavailable';
-      description.textContent = `Maximum acceleration: ${format(m.max_acceleration_mps2, m.peak_time_s)}. Maximum deceleration: ${format(m.max_deceleration_mps2, m.deceleration_peak_time_s)}. ${windowLabel}; ${m.status}; ${m.deceleration_status}.`;
+      description.textContent = `Departure-window maximum acceleration: ${format(m.max_acceleration_mps2, m.peak_time_s)}. Departure-window maximum deceleration: ${format(m.max_deceleration_mps2, m.deceleration_peak_time_s)}. ${windowLabel}; ${m.status}; ${m.deceleration_status}. Pre-arrival maximum deceleration: ${format(m.max_arrival_deceleration_mps2 ?? null, m.arrival_deceleration_peak_time_s ?? null)} (${m.arrival_deceleration_status ?? "not computed; regenerate report"}).`;
       if (m.coverage) {
         const assignment = document.createElement('p');
         assignment.textContent = `${m.station_assignment}. Coverage: ${m.coverage.replaceAll('_',' ')}.`;
@@ -101,6 +101,11 @@
         const windowEnd = restartKnown ? Math.min(m.window_end_s - origin, duration, hi) : 0;
         const windowStart = restartKnown ? Math.max(lo, m.window_start_s - origin) : 0;
         if (windowEnd > windowStart) svg.append(svgNode('rect', {x:x(windowStart), y:top, width:x(windowEnd)-x(windowStart), height:bottom-top, fill:'#e9f2fa'}));
+        if (m.next_arrival_s != null && m.arrival_window_start_s != null) {
+          const arrivalStart = Math.max(lo, m.arrival_window_start_s-origin);
+          const arrivalEnd = Math.min(hi, m.next_arrival_s-origin);
+          if (arrivalEnd > arrivalStart) svg.append(svgNode('rect', {x:x(arrivalStart), y:top, width:x(arrivalEnd)-x(arrivalStart), height:bottom-top, fill:'#eadcf5', opacity:0.7, 'data-window':'arrival'}));
+        }
         for (let i = 0; i <= 5; i++) {
           const time = lo + (hi - lo) * i / 5;
           svg.append(svgNode('line', {x1:x(time), x2:x(time), y1:top, y2:bottom, stroke:'#d9e2ea'}));
@@ -124,6 +129,14 @@
         };
         marker(m.peak_time_s, m.max_acceleration_mps2, '#187bb6', 'acceleration');
         marker(m.deceleration_peak_time_s, m.max_deceleration_mps2 === null ? null : -m.max_deceleration_mps2, '#c65a19', 'deceleration');
+        marker(m.arrival_deceleration_peak_time_s ?? null, m.max_arrival_deceleration_mps2 == null ? null : -m.max_arrival_deceleration_mps2, '#8a3db0', 'arrival-deceleration');
+        if (m.next_arrival_s != null) {
+          const arrival = m.next_arrival_s-origin;
+          if (arrival >= lo && arrival <= hi) {
+            const line = svgNode('line', {x1:x(arrival), x2:x(arrival), y1:top, y2:bottom, stroke:'#8a3db0', 'stroke-width':2, class:'trip-arrival-line', 'data-time':arrival});
+            line.append(svgNode('title', {}, `Next validated arrival: ${arrival.toFixed(3)} s (${m.next_arrival_s.toFixed(3)} s in recording)`)); svg.append(line);
+          }
+        }
         svg.append(svgNode('text', {x:left, y:16}, 'Filtered forward acceleration (m/s²)'));
         svg.append(svgNode('text', {x:(left+right)/2, y:316, 'text-anchor':'middle'}, restartKnown ? 'Seconds since restart time' : 'Seconds since available recording start (departure not identified)'));
       }
@@ -134,6 +147,7 @@
       });
       button('Zoom in', () => zoom(0.5)); button('Zoom out', () => zoom(2));
       if (restartKnown) button(`Analysis window (${m.window_seconds} s)`, () => view(m.window_start_s-origin, Math.min(m.window_end_s-origin, duration)));
+      if (m.next_arrival_s != null) button(`Before arrival (${m.arrival_window_seconds} s)`, () => view(Math.max(0, m.arrival_window_start_s-origin), Math.min(m.next_arrival_s-origin, duration)));
       button('Full interstation run', () => view(0, duration));
       svg.addEventListener('wheel', event => {event.preventDefault(); zoom(event.deltaY < 0 ? 0.8 : 1.25, xTime(event));}, {passive:false});
       svg.onpointerdown = event => {if(event.button !== 0)return; anchor = xTime(event); svg.setPointerCapture(event.pointerId);};
