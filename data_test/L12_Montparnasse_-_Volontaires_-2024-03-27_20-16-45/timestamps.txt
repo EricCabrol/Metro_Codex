@@ -1,0 +1,6 @@
+Timestamps for trip L12_Montparnasse_-_Volontaires_-2024-03-27_20-16-45
+50.8823368 stop
+67.5963748 start
+127.3981898 stop
+144.3078825 start
+190.7 end

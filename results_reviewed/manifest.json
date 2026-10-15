@@ -3,6 +3,11 @@
   "processing": {
     "reused": [
       "L13_Montparnasse_-_Pernety_bag_Yinv-2024-01-24_18-23-06",
+      "L3_Opera_-_Sentier_-2024-02-02_07-55-00",
+      "L3_Sentier_-_St-Lazare_-2024-05-03_17-04-03",
+      "L3_Sentier_-_St-Lazare_-_100Hz-2024-05-24_16-29-53",
+      "L3_St-Lazare_-_Sentier_-2024-01-24_08-05-03",
+      "L3_St-Lazare_-_Sentier_-2024-06-26_06-16-57",
       "L4_Chatelet_-_Montparnasse_-_brutal-2024-03-29_18-03-15",
       "L4_Chatelet_-_Montparnasse_-_window_-_smooth-2024-03-18_18-26-17",
       "L4_Etienne_Marcel_-_Montparnasse_-_brutal_2_stops_annotated-2024-06-24_17-22-44",
@@ -14,12 +19,7 @@
       "L8_Madeleine_-_La_Motte_Yinv-2024-02-09_16-30-00"
     ],
     "processed": [
-      "L3_Opera_-_Sentier_-2024-02-02_07-55-00",
-      "L3_Sentier_-_St-Lazare_-2024-05-03_17-04-03",
-      "L3_Sentier_-_St-Lazare_-_100Hz-2024-05-24_16-29-53",
-      "L3_Sentier_-_St-Lazare_-_Yinv_-2024-06-28_16-31-47",
-      "L3_St-Lazare_-_Sentier_-2024-01-24_08-05-03",
-      "L3_St-Lazare_-_Sentier_-2024-06-26_06-16-57"
+      "L3_Sentier_-_St-Lazare_-_Yinv_-2024-06-28_16-31-47"
     ]
   },
   "reviewed_stops_file": "C:\\Users\\ericc\\Documents\\ERIC\\DEV\\0_myGithub\\Metro_Codex\\reviews\\stops.csv",
@@ -663,6 +663,15 @@
       "manual": false
     },
     {
+      "recording": "L3_Sentier_-_St-Lazare_-_Yinv_-2024-06-28_16-31-47",
+      "time_s": 277.52403125000006,
+      "restart_s": 297.77403125000006,
+      "candidate_id": "624740cf121f8fcaf86b",
+      "accepted": false,
+      "note": "",
+      "manual": false
+    },
+    {
       "recording": "L3_St-Lazare_-_Sentier_-2024-01-24_08-05-03",
       "time_s": 138.1731015625,
       "restart_s": 169.92310156250002,
@@ -1239,6 +1248,15 @@
       "manual": false
     },
     {
+      "recording": "L3_Sentier_-_St-Lazare_-_Yinv_-2024-06-28_16-31-47",
+      "time_s": 260.47403125000005,
+      "restart_s": 297.774,
+      "candidate_id": "9273130d1064c631d95e",
+      "accepted": false,
+      "note": "",
+      "manual": false
+    },
+    {
       "recording": "L3_St-Lazare_-_Sentier_-2024-01-24_08-05-03",
       "time_s": 315.97310156250006,
       "restart_s": 327.2731015625001,
@@ -1372,10 +1390,28 @@
       "accepted": true,
       "note": "",
       "manual": true
+    },
+    {
+      "recording": "L3_Sentier_-_St-Lazare_-_Yinv_-2024-06-28_16-31-47",
+      "time_s": 260.637,
+      "restart_s": 296.757,
+      "candidate_id": "manual-392368f6-0811-4381-9646-69510ffe1c9a",
+      "accepted": true,
+      "note": "",
+      "manual": true
     }
   ],
   "all_reviews": [],
   "all_reviewed_stops": [
+    {
+      "recording": "L6_Raspail_-_Montparnasse_-_side-2024-03-04_21-01-22",
+      "time_s": 1.06854736328125,
+      "restart_s": 9.718547363281251,
+      "candidate_id": "9ed443464d28593b4a91",
+      "accepted": false,
+      "note": "",
+      "manual": false
+    },
     {
       "recording": "L3_Opera_-_Sentier_-2024-02-02_07-55-00",
       "time_s": 3.2191425781250005,
@@ -1494,6 +1530,15 @@
       "manual": false
     },
     {
+      "recording": "L3_Sentier_-_St-Lazare_-_Yinv_-2024-06-28_16-31-47",
+      "time_s": 277.52403125000006,
+      "restart_s": 297.77403125000006,
+      "candidate_id": "624740cf121f8fcaf86b",
+      "accepted": false,
+      "note": "",
+      "manual": false
+    },
+    {
       "recording": "L3_St-Lazare_-_Sentier_-2024-01-24_08-05-03",
       "time_s": 138.1731015625,
       "restart_s": 169.92310156250002,
@@ -2070,6 +2115,15 @@
       "manual": false
     },
     {
+      "recording": "L3_Sentier_-_St-Lazare_-_Yinv_-2024-06-28_16-31-47",
+      "time_s": 260.47403125000005,
+      "restart_s": 297.774,
+      "candidate_id": "9273130d1064c631d95e",
+      "accepted": false,
+      "note": "",
+      "manual": false
+    },
+    {
       "recording": "L3_St-Lazare_-_Sentier_-2024-01-24_08-05-03",
       "time_s": 315.97310156250006,
       "restart_s": 327.2731015625001,
@@ -2119,15 +2173,6 @@
       "time_s": 4.914138916015626,
       "restart_s": 15.01413891601563,
       "candidate_id": "8702f9e9fb1b0da59b45",
-      "accepted": false,
-      "note": "",
-      "manual": false
-    },
-    {
-      "recording": "L6_Raspail_-_Montparnasse_-_side-2024-03-04_21-01-22",
-      "time_s": 1.06854736328125,
-      "restart_s": 9.718547363281251,
-      "candidate_id": "9ed443464d28593b4a91",
       "accepted": false,
       "note": "",
       "manual": false
@@ -2209,6 +2254,15 @@
       "time_s": 198.447,
       "restart_s": 213.51,
       "candidate_id": "manual-c20f5297-eb00-4f03-88f7-e41a3adc331e",
+      "accepted": true,
+      "note": "",
+      "manual": true
+    },
+    {
+      "recording": "L3_Sentier_-_St-Lazare_-_Yinv_-2024-06-28_16-31-47",
+      "time_s": 260.637,
+      "restart_s": 296.757,
+      "candidate_id": "manual-392368f6-0811-4381-9646-69510ffe1c9a",
       "accepted": true,
       "note": "",
       "manual": true
