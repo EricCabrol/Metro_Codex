@@ -57,6 +57,18 @@ class ManualStopTests(unittest.TestCase):
         self.assertEqual(initial['manual-custom']['restart_s'],55)
         self.assertEqual(len(review_candidates(self.payload(),initial)),2)
 
+    def test_report_ignores_manual_reviews_of_failed_recordings_without_changing_rows(self):
+        rows=pd.DataFrame([
+            dict(recording='test',time_s=45,restart_s=55,accepted=True,manual=True,candidate_id='manual-kept',note='keep'),
+            dict(recording='failed',time_s=15,restart_s=25,accepted=True,manual=True,candidate_id='manual-retry',note='preserve for retry')])
+        original=rows.copy(deep=True)
+        initial=initial_decisions_from_rows(self.payload(),rows)
+        self.assertEqual(set(initial),{'manual-kept'})
+        self.assertEqual(len(review_candidates(self.payload(),initial)),2)
+        pd.testing.assert_frame_equal(rows,original)
+        empty=dict(self.payload(),recordings=[],candidates=[])
+        self.assertEqual(initial_decisions_from_rows(empty,rows),{})
+
     def test_invalid_manual_intervals_identifiers_and_overlap_rejected(self):
         for change in [{'time_s':55},{'restart_s':101},{'time_s':float('nan')},
                        {'restart_s':True},{'recording':'other'}]:

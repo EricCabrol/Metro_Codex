@@ -427,6 +427,14 @@ necessary. `--reprocess` forces recalculation of all active recordings. Cache
 snapshots can be deleted to reclaim disk space; keep the review files to preserve
 validation decisions. `manifest.json` records the cache path and processing summary.
 
+On Windows, transient file-access locks during cache publication are retried.
+If the cache still cannot be saved, successful analysis artifacts remain in the
+report; the console reports `Cache save skipped` and the recording may be
+recomputed next time. A genuine recording failure is listed in the report, while
+its review rows remain saved for a later retry. To place the cache outside a
+Documents/sync folder, use `--cache-dir "$env:LOCALAPPDATA\MetroCodex\cache"`
+in PowerShell.
+
 ## GitHub Pages boxplot demo
 
 `demo/` is a standalone snapshot containing only the departure/arrival boxplots,

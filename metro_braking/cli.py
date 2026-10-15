@@ -259,10 +259,10 @@ def main():
                     if source_files(folder) != files:
                         raise ValueError("Source files changed during analysis; retry with a stable recording")
                     return computed
-                result = cache.process(folder.name, signature, build)
+                result = cache.process(folder.name, signature, build, output=output, index=len(summaries))
             else:
                 print(f"Reusing {folder.name}", flush=True)
-            cache.materialize(folder.name, signature, result, output, len(summaries))
+                cache.materialize(folder.name, signature, result, output, len(summaries))
             processing["reused" if reused else "processed"].append(folder.name)
             summaries.append(result["summary"])
             events.extend(result["events"])
