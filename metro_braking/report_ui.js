@@ -27,7 +27,7 @@
     const snapshot = JSON.parse(JSON.stringify(decisions));
     status.textContent = 'Saving…';
     saveQueue = saveQueue.catch(() => {}).then(() => request('/api/reviews', {decisions: snapshot})).then(() => {
-      status.textContent = 'Saved to reviews/stops.json and stops.csv';
+      status.textContent = 'Saved to reviews/stops.json and stops.csv. Export sections to refresh station labels and duration checks.';
     }).catch(error => {status.textContent = 'Disk save failed: ' + error.message + '. Decisions remain in browser storage.'; throw error;});
     // Keep failures visible without an unhandled rejection.
     saveQueue.catch(() => {});
@@ -37,7 +37,7 @@
     const accepted = own.filter(c => state(c).decision === 'accepted');
     const interior = accepted.filter(c => c.boundary === 'interior').length;
     const pending = own.filter(c => state(c).decision === 'pending').length;
-    card.querySelector('.review-count').textContent = `${accepted.length} accepted (${interior} interior), ${pending} pending. Expected intermediate stops: ${recording.expected_intermediate_stops ?? 'unknown'}.`;
+    card.querySelector('.review-count').textContent = `${accepted.length} accepted (${interior} interior), ${pending} pending. Expected intermediate stops: ${recording.expected_intermediate_stops ?? 'unknown'}.${accepted.length && interior === recording.expected_intermediate_stops && !recording.gap_count && !accepted.some(c=>c.boundary==='gap edge') ? ' Station names inferred from stop order.' : ''}`;
   }
   function draw(canvas, recording, selected, zoom) {
     const width = Math.max(400, canvas.clientWidth), height = 300;

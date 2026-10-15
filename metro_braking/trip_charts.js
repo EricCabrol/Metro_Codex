@@ -18,25 +18,44 @@
       root.textContent = 'No validated interstation runs yet. Accept at least two stops per recording and export sections, or run analysis with --stops.';
       return;
     }
+    const overview = document.createElement('p'); overview.className = 'duration-overview';
+    const warnings = trips.filter(t => t.metrics.duration_warning).length;
+    overview.textContent = `${warnings} running-duration warning(s) above 2 standard deviations. Only complete, station-assigned runs on the same line and in the same direction are compared; partial runs are excluded.`;
+    root.append(overview);
     for (const [index, trip] of trips.entries()) {
       const m = trip.metrics, duration = m.end_s - m.start_s;
+      const name = m.display_recording || m.recording;
+      const runName = m.run_label || `Interstation run ${m.section}`;
+      const origin = m.restart_s ?? m.start_s;
+      const restartKnown = m.restart_s !== null;
       const card = document.createElement('details'); card.className = 'trip-signal'; card.id = `interstation-run-${index}`;
       const summary = document.createElement('summary');
-      summary.textContent = `${m.recording} / interstation run ${m.section}`; card.append(summary);
+      summary.textContent = `${name} / ${runName}${m.duration_warning ? " — Duration warning (>2 SD)" : ""}`;
+      card.classList.toggle("has-duration-warning", !!m.duration_warning); summary.title = m.recording; card.append(summary);
       if (contents) {
         if (!groups.has(m.recording)) {
           const group = document.createElement('details');
-          const title = document.createElement('summary'); title.textContent = m.recording;
+          const title = document.createElement('summary'); title.textContent = name;
           const list = document.createElement('ul'); group.append(title, list); contents.append(group);
           groups.set(m.recording, list);
         }
         const item = document.createElement('li'), link = document.createElement('a');
-        link.href = '#' + card.id; link.textContent = `Interstation run ${m.section}`;
+        link.href = '#' + card.id; link.textContent = runName + (m.duration_warning ? " — Duration warning" : "");
         item.append(link); groups.get(m.recording).append(item);
       }
       const description = document.createElement('p'); description.className = 'trip-extrema';
       const format = (value, time) => value === null ? 'not measured' : `${value.toFixed(4)} m/s² at ${(time - m.start_s).toFixed(3)} s`;
-      description.textContent = `Maximum acceleration: ${format(m.max_acceleration_mps2, m.peak_time_s)}. Maximum deceleration: ${format(m.max_deceleration_mps2, m.deceleration_peak_time_s)}. Restart: ${m.restart_s.toFixed(3)} s in recording. Analysis: ${(m.window_start_s-m.restart_s).toFixed(3)}–${(m.window_end_s-m.restart_s).toFixed(3)} s after restart; ${m.status}; ${m.deceleration_status}.`;
+      const windowLabel = restartKnown ? `Restart: ${m.restart_s.toFixed(3)} s in recording. Analysis: ${(m.window_start_s-origin).toFixed(3)}–${(m.window_end_s-origin).toFixed(3)} s after restart` : 'Departure not identified: extrema unavailable';
+      description.textContent = `Maximum acceleration: ${format(m.max_acceleration_mps2, m.peak_time_s)}. Maximum deceleration: ${format(m.max_deceleration_mps2, m.deceleration_peak_time_s)}. ${windowLabel}; ${m.status}; ${m.deceleration_status}.`;
+      if (m.coverage) {
+        const assignment = document.createElement('p');
+        assignment.textContent = `${m.station_assignment}. Coverage: ${m.coverage.replaceAll('_',' ')}.`;
+        card.append(assignment);
+        const timing = document.createElement('p'); timing.className = m.duration_warning ? 'duration-warning' : 'run-duration';
+        const stats = m.duration_mean_s === null ? 'No comparable complete runs' : `Mean ${m.duration_mean_s.toFixed(2)} s; sample standard deviation ${m.duration_std_s === null ? 'unavailable' : m.duration_std_s.toFixed(2)+' s'}; n=${m.duration_sample_count}`;
+        timing.textContent = `${m.duration_s === null ? 'Complete running duration unavailable' : 'Running duration: '+m.duration_s.toFixed(2)+' s'}. ${stats}. ${m.duration_warning ? 'Warning: running duration differs from the mean by more than 2 standard deviations.' : m.duration_check_status.replaceAll('_',' ')+'.'}`;
+        card.append(timing);
+      }
       card.append(description);
       const toolbar = document.createElement('div'); toolbar.className = 'trip-toolbar';
       const inputs = [];
@@ -79,8 +98,8 @@
         const pad = Math.max(0.1, (ymax - ymin) * 0.12); ymin -= pad; ymax += pad;
         const y = a => bottom - (a - ymin) / (ymax - ymin) * (bottom - top);
         svg.append(svgNode('rect', {x:left, y:top, width:right-left, height:bottom-top, fill:'#fff'}));
-        const windowEnd = Math.min(m.window_end_s - m.restart_s, duration, hi);
-        const windowStart = Math.max(lo, m.window_start_s - m.restart_s);
+        const windowEnd = restartKnown ? Math.min(m.window_end_s - origin, duration, hi) : 0;
+        const windowStart = restartKnown ? Math.max(lo, m.window_start_s - origin) : 0;
         if (windowEnd > windowStart) svg.append(svgNode('rect', {x:x(windowStart), y:top, width:x(windowEnd)-x(windowStart), height:bottom-top, fill:'#e9f2fa'}));
         for (let i = 0; i <= 5; i++) {
           const time = lo + (hi - lo) * i / 5;
@@ -106,7 +125,7 @@
         marker(m.peak_time_s, m.max_acceleration_mps2, '#187bb6', 'acceleration');
         marker(m.deceleration_peak_time_s, m.max_deceleration_mps2 === null ? null : -m.max_deceleration_mps2, '#c65a19', 'deceleration');
         svg.append(svgNode('text', {x:left, y:16}, 'Filtered forward acceleration (m/s²)'));
-        svg.append(svgNode('text', {x:(left+right)/2, y:316, 'text-anchor':'middle'}, 'Seconds since restart time'));
+        svg.append(svgNode('text', {x:(left+right)/2, y:316, 'text-anchor':'middle'}, restartKnown ? 'Seconds since restart time' : 'Seconds since available recording start (departure not identified)'));
       }
       inputs.forEach(input => input.onchange = () => {
         const from = Number(inputs[0].value), to = Number(inputs[1].value);
@@ -114,7 +133,7 @@
         view(from, to);
       });
       button('Zoom in', () => zoom(0.5)); button('Zoom out', () => zoom(2));
-      button(`Analysis window (${m.window_seconds} s)`, () => view(m.window_start_s-m.restart_s, Math.min(m.window_end_s-m.restart_s, duration)));
+      if (restartKnown) button(`Analysis window (${m.window_seconds} s)`, () => view(m.window_start_s-origin, Math.min(m.window_end_s-origin, duration)));
       button('Full interstation run', () => view(0, duration));
       svg.addEventListener('wheel', event => {event.preventDefault(); zoom(event.deltaY < 0 ? 0.8 : 1.25, xTime(event));}, {passive:false});
       svg.onpointerdown = event => {if(event.button !== 0)return; anchor = xTime(event); svg.setPointerCapture(event.pointerId);};

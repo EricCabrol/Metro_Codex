@@ -10,7 +10,8 @@ from urllib.parse import urlsplit
 
 import pandas as pd
 from .analysis import split_sections
-from .trip_acceleration import trip_acceleration, write_trip_acceleration, trip_chart, resolve_restart
+from .trip_acceleration import write_trip_acceleration
+from .runs import build_runs, duration_statistics
 
 
 def candidate_id(row):
@@ -123,14 +124,13 @@ class ReviewStore:
             charts = []
             for recording in payload["recordings"]:
                 accepted = [r for r in rows if r["recording"] == recording["recording"] and r["accepted"]]
-                if len(accepted) < 2:
+                if not accepted:
                     continue
                 signal = pd.read_csv(self.output / recording["signal_file"], float_precision="round_trip")
+                own_metrics, own_charts = build_runs(recording["recording"], signal, pd.DataFrame(accepted), payload["candidates"], payload)
+                metrics.extend(own_metrics)
+                charts.extend(own_charts)
                 for number, start, end, section in split_sections(signal, pd.DataFrame(accepted)):
-                    restart = resolve_restart(pd.DataFrame(accepted), start, payload["candidates"])
-                    metrics.append(trip_acceleration(recording["recording"], number, restart, end, section,
-                        payload.get("trip_window_seconds", 30), payload.get("trip_restart_offset_seconds", 0.5), start))
-                    charts.append(trip_chart(metrics[-1], section))
                     key = hashlib.sha256(recording["recording"].encode()).hexdigest()[:12]
                     relative = f"reviewed_sections/{generation}/{key}_{number:03d}.csv"
                     plan.append((relative, section, {"recording": recording["recording"], "section": number,
@@ -142,6 +142,7 @@ class ReviewStore:
                 section.to_csv(target, index=False)
             self._csv(self.output / "reviewed_sections.csv", [p[2] for p in plan],
                       ["recording", "section", "start_s", "end_s", "file", "contains_gap"])
+            duration_statistics(metrics)
             write_trip_acceleration(self.output, metrics, payload.get("trip_window_seconds", 30),
                                     payload.get("trip_restart_offset_seconds", 0.5))
             return {"sections": len(plan), "index": "reviewed_sections.csv",

@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 
 FIELDS = ["recording", "section", "start_s", "restart_s", "arrival_s", "end_s", "window_seconds", "window_start_s", "window_end_s",
           "max_acceleration_mps2", "peak_time_s", "status",
-          "max_deceleration_mps2", "deceleration_peak_time_s", "deceleration_status"]
+          "max_deceleration_mps2", "deceleration_peak_time_s", "deceleration_status", "display_recording", "run_label", "origin_station", "destination_station",
+          "line", "station_assignment", "coverage", "duration_s", "duration_eligible",
+          "duration_sample_count", "duration_mean_s", "duration_std_s", "duration_warning", "duration_check_status"]
 
 def window_status(signal, window, start, end):
     """Check finite values and continuous coverage without interpolating gaps."""
@@ -68,6 +70,10 @@ def trip_acceleration(recording, number, start, end, signal, window_seconds=30, 
 def write_trip_acceleration(output, rows, window_seconds=30, restart_offset_seconds=0.5):
     """Persist all outcomes and compare independent extrema in complete windows."""
     pd.DataFrame(rows, columns=FIELDS).to_csv(output / "trip_acceleration.csv", index=False)
+    duration_fields = ["recording", "display_recording", "run_label", "line", "origin_station", "destination_station",
+                       "coverage", "duration_s", "duration_sample_count", "duration_mean_s", "duration_std_s",
+                       "duration_warning", "duration_check_status"]
+    pd.DataFrame(rows).reindex(columns=duration_fields).to_csv(output / "run_durations.csv", index=False)
     for field, filename, label, color in [
         ("max_acceleration_mps2", "trip_acceleration.png", "Maximum filtered forward acceleration (m/s²)", "#1f77b4"),
         ("max_deceleration_mps2", "trip_deceleration.png", "Maximum filtered deceleration magnitude (m/s²)", "#b34c32"),
@@ -75,7 +81,7 @@ def write_trip_acceleration(output, rows, window_seconds=30, restart_offset_seco
         measured = [r for r in rows if r["status"] == "complete" and r[field] is not None]
         fig, ax = plt.subplots(figsize=(12, max(4, len(measured) * 0.28)), constrained_layout=True)
         if measured:
-            labels = [f'{r["recording"]} / interstation run {r["section"]}' for r in measured]
+            labels = [f'{r.get("display_recording", r["recording"])} / {r.get("run_label", "Interstation run " + str(r["section"]))}' for r in measured]
             ax.barh(range(len(measured)), [r[field] for r in measured], color=color)
             ax.set_yticks(range(len(measured)), labels, fontsize=7)
             ax.invert_yaxis()
@@ -94,7 +100,7 @@ def write_trip_acceleration(output, rows, window_seconds=30, restart_offset_seco
 def trip_chart(metric, signal):
     """Keep full-precision filtered samples and separate blocks for visual review."""
     blocks = []
-    signal = signal[signal.seconds_elapsed >= metric["restart_s"]]
+    signal = signal[signal.seconds_elapsed >= (metric["restart_s"] if metric["restart_s"] is not None else metric["start_s"])]
     for _, block in signal.groupby("block", sort=False):
         blocks.append([[float(t - metric["start_s"]), float(a)]
                        for t, a in zip(block.seconds_elapsed, block.axis_filtered_mps2)])

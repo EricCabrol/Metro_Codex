@@ -58,3 +58,35 @@ def compare_stop_count(summary, intervals):
         if len(interior) == expected and not gap else
         "review required: gaps or intermediate count mismatch")
     return result
+
+
+def display_recording_name(name):
+    """Format names for display only; preserve all non-station metadata."""
+    from datetime import datetime
+    match = re.match(r"^L(\d+)_(.*?)-(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})$", name)
+    if not match:
+        return name.replace("_", " ")
+    line, body, timestamp = match.groups()
+    try:
+        date = datetime.strptime(timestamp, "%Y-%m-%d_%H-%M-%S")
+    except ValueError:
+        return name.replace("_", " ")
+    pieces = body.split("_-_", 1)
+    if len(pieces) != 2:
+        return name.replace("_", " ")
+    route = route_from_name(name)
+    if route.get("route_status") != "resolved":
+        return name.replace("_", " ")
+    # Match the longest destination alias and keep every remaining token.
+    aliases = {normalized(s): s for s in CATALOG["lines"][line]["stations"]}
+    aliases.update({normalized(k): v for k, v in CATALOG["aliases"].items()})
+    destination = normalized(pieces[1])
+    matches = [a for a, station in aliases.items() if station == route["destination"] and
+               (destination == a or destination.startswith(a + " "))]
+    alias = max(matches, key=len)
+    tokens = re.findall(r"[^\W_]+", pieces[1], re.UNICODE)
+    metadata = " ".join(tokens[len(alias.split()):])
+    origin = route["origin"].replace(" - Bienvenüe", "")
+    endpoint = route["destination"].replace(" - Bienvenüe", "")
+    label = f"L{line} {origin} – {endpoint} {date:%Hh%M, %d/%m/%Y}"
+    return label + (f" ({metadata})" if metadata else "")

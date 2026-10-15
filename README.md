@@ -172,8 +172,32 @@ Trips shorter than the configured duration and windows with missing samples or
 gaps are flagged and excluded from both comparison plots, `trip_acceleration.png`
 and `trip_deceleration.png`. Positive acceleration means propulsion under the
 configured axis convention; check orientation flags before comparing recordings.
-The last accepted stop has no following validated interstation run boundary and produces no
-interstation run measurement. At least two accepted stops per recording are required.
+Without a following validated arrival, the final run is marked partial. A matched route can still expose its departure extrema if the analysis window is complete; otherwise at least two accepted stops are needed for a bounded run.
+
+Recording titles use readable station names, local recording date and time, and
+parenthesized metadata, for example `L4 Châtelet – Montparnasse 18h03, 29/03/2024
+(brutal)`. Raw recording identifiers, filenames and review keys remain unchanged.
+When accepted interior stop counts match the route, with no gaps or ambiguous
+edge assignments, the stops receive station names in route order. Reports show
+`Station names inferred from stop order`. A mismatch keeps neutral run labels.
+
+For six accepted interior stops on Châtelet–Montparnasse, five complete runs are
+bounded by those stops, starting with Cité–Saint-Michel. Two additional partial
+portions are displayed: Châtelet–Cité has no identified departure and yields no
+extrema; Saint-Placide–Montparnasse has no identified arrival but can yield
+extrema if the validated restart has a complete analysis window before recording
+ends. Neither partial portion contributes to running-duration statistics. Their
+charts explicitly identify coverage and the time origin; no endpoint stop is invented.
+
+`run_durations.csv` and each chart show running duration (restart to next arrival),
+mean, sample standard deviation, comparable sample count and a diagnostic status.
+Only complete station-assigned runs on the same line and directed station pair
+are pooled. At least three comparable runs are needed for a warning when the
+absolute deviation from the group mean exceeds twice the sample standard deviation.
+The tested run is included in that mean. Small groups are marked insufficient;
+warnings are diagnostics for review, not automatic rejection or reassignment.
+Warnings are visible in collapsed chart headings and the contents navigation.
+Statistics and station labels are rebuilt from all current saved decisions on export.
 
 The report starts with a clickable table of contents linking to each section,
 recording review, diagnostic panel and individual interstation run. Links open
@@ -259,8 +283,7 @@ The current output supports review and comparison, not a perceptual threshold
 or a passenger-safety conclusion. Establishing a threshold requires confirmed
 orientation, reviewed braking boundaries, enough event-level comfort labels,
 and checks that results generalize across trips, phone placements and devices.
-Route references support expected counts, but station labels are not assigned
-automatically to individual detections.
+Route references support expected counts. Station names are inferred in route order only after human acceptance produces a matching stop count without ambiguous gaps or endpoint assignments; automatic detections alone do not establish station identity.
 
 Tests cover known synthetic braking, filter response, gravity fallback,
 unresolved direction, Y/Yinv and opposite signs, minimum dwell and short pauses,

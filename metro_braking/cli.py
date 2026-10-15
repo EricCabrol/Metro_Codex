@@ -12,9 +12,10 @@ import numpy as np
 import pandas as pd
 
 from .analysis import load_recording, detect_events, detect_stops, check_orientation, apply_reviews, sensor_inventory, split_sections
-from .routes import route_from_name, compare_stop_count, CATALOG
-from .review import report_payload, serve_report
-from .trip_acceleration import trip_acceleration, write_trip_acceleration, trip_chart, resolve_restart
+from .routes import route_from_name, compare_stop_count, CATALOG, display_recording_name
+from .review import report_payload, serve_report, candidate_id
+from .trip_acceleration import write_trip_acceleration
+from .runs import build_runs, duration_statistics
 
 
 def validate_config(config):
@@ -77,7 +78,7 @@ def diagnostic_plot(segments, summary, events, quiet, folder, output, stop_diagn
         ax.grid(alpha=0.2)
     axes[0].legend(loc="upper right")
     axes[1].legend(loc="upper right")
-    fig.suptitle(summary["recording"] + "\n" + summary["quality_flags"], fontsize=9)
+    fig.suptitle(display_recording_name(summary["recording"]) + "\n" + summary["quality_flags"], fontsize=9)
     fig.savefig(output, dpi=120)
     plt.close(fig)
 
@@ -97,7 +98,7 @@ def report_contents(summaries, has_failures):
     if has_failures:
         items += '<li><a href="#failed-recordings">Failed recordings</a></li>'
     recordings = ''.join(
-        f'<li><a href="#recording-{i}">{html.escape(summary["recording"])}</a>'
+        f'<li><a href="#recording-{i}">{html.escape(display_recording_name(summary["recording"]))}</a>'
         f'<ul><li><a href="#stop-review-{i}">Review station stops</a></li>'
         f'<li><a href="#diagnostics-{i}">Detection tables and full diagnostic plots</a></li></ul></li>'
         for i, summary in enumerate(summaries))
@@ -117,7 +118,7 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
         rejected = pd.DataFrame([q for q in rejected_dwells if q["recording"] == summary["recording"]])
         short_table = '<details><summary>Short quiet intervals excluded by minimum duration</summary>' + rejected[["start_s", "end_s", "duration_s", "boundary"]].to_html(index=False, float_format=lambda x: f"{x:.2f}") + '</details>' if not rejected.empty else ""
         route = html.escape(summary.get("route_stations", summary["route_status"]))
-        cells.append(f'<article id="recording-{i}"><h2>{html.escape(summary["recording"])}</h2>'
+        cells.append(f'<article id="recording-{i}"><h2>{html.escape(display_recording_name(summary["recording"]))}</h2>'
                      f'<p>{route}</p>'
                      f'<p>{summary["duration_s"]:.1f} seconds; {summary["median_sample_hz"]:.1f} Hz; '
                      f'{len(own)} candidates/events. {html.escape(summary["quality_flags"])}</p>'
@@ -131,13 +132,13 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
                 largest_candidate_peak_mps2=("peak_mps2", "max"),
                 largest_candidate_jerk_p95_mps3=("jerk_p95_mps3", "max"))
         grouped.to_csv(output / "comparison.csv")
-        comparison = grouped.to_html(float_format=lambda x: f"{x:.3f}")
+        comparison = grouped.rename(index=display_recording_name).to_html(float_format=lambda x: f"{x:.3f}")
         fig, ax = plt.subplots(figsize=(12, 6), constrained_layout=True)
         for summary in summaries:
             own = event_frame[event_frame.recording == summary["recording"]]
             if own.empty:
                 continue
-            ax.scatter(own.peak_mps2, own.jerk_p95_mps3, alpha=0.55, label=summary["recording"])
+            ax.scatter(own.peak_mps2, own.jerk_p95_mps3, alpha=0.55, label=display_recording_name(summary["recording"]))
         ax.set(xlabel="Candidate peak acceleration (m/s²)", ylabel="Candidate jerk, 95th percentile (m/s³)",
                title="Exploratory event comparison — candidates require review")
         ax.legend(fontsize=5, loc="upper left")
@@ -152,10 +153,10 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     text += '<h2 id="report-guide">Reading the report</h2>'
     text += f'<p class="warning">Y points forward by convention; Yinv reverses it. PCA alignment and motion around dwells check that convention, with inconsistencies flagged rather than silently corrected. Stop candidates require at least {config["minimum_stop_seconds"]:g} seconds of observed dwell. Route counts are independent checks, not detection targets. No perceptual threshold or safety conclusion is established.</p>'
     text += '<p>Red shading: expected braking; blue: opposite-sign events retained when direction is uncertain; green: qualifying dwell candidates; orange: short quiet intervals excluded from counts; purple dashed lines: original SensorLogger Stop annotations. Stops use uncalibrated XYZ variation (green trace) and longitudinal distance from a quiet-window baseline (gray trace), with a trailing one-second window. Disturbances of up to 1.5 seconds may be bridged; recording gaps never are. At least 90% of each candidate must be quiet. Steady motion can still produce a false positive.</p>'
-    text += '<p>Expected arrivals exclude the origin and include the destination. Intermediate stops exclude both endpoints. The count check compares interior candidates with intermediate stations; endpoint dwells may be truncated, and gaps or passenger movement may hide stops. Matching the count does not confirm station identities.</p>'
+    text += '<p>Expected arrivals exclude the origin and include the destination. Intermediate stops exclude both endpoints. The count check compares interior candidates with intermediate stations; endpoint dwells may be truncated, and gaps or passenger movement may hide stops. Accepted stops with a matching count are assigned station names in route order, as checked during human review.</p>'
     text += '<p>Use Accept, Discard or Pending below to review station stops. Arrival and restart times are editable. Rolling-window onset can lag the actual arrival. Download reviewed stops CSV exports decisions without manual editing. For automatic disk saves and section exports, run <code>python -m metro_braking --serve</code> and open the printed local URL. Braking-event labels remain a separate workflow.</p>'
     columns = ["recording", "expected_arrivals", "expected_intermediate_stops", "detected_interior_stops", "short_dwell_candidates", "stop_count_status", "orientation_status"]
-    text += '<h2 id="route-checks">Route and direction checks</h2>' + inventory.reindex(columns=columns).to_html(index=False)
+    text += '<h2 id="route-checks">Route and direction checks</h2>' + inventory.reindex(columns=columns).assign(recording=lambda frame: frame.recording.map(display_recording_name)).to_html(index=False)
     text += '<p>Full sampling and axis details: <a href="inventory.csv">inventory.csv</a>. Direction evidence: <a href="orientation_checks.csv">orientation_checks.csv</a>.</p>'
     text += '<p>Station-order sources, checked 30 September 2026: ' + ', '.join(f'<a href="{line["source"]}">Transilien line {number}</a>' for number, line in CATALOG["lines"].items()) + '. Regular topology is used for the 2024 recordings; current closures are not applied.</p>'
     text += '<h2 id="event-comparison">Exploratory comparison</h2>' + comparison
@@ -166,7 +167,9 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
         text += '<h2 id="failed-recordings">Failed recordings</h2><pre>' + html.escape(json.dumps(failures, indent=2)) + '</pre>'
     payload = report_payload(summaries, quiet, rejected_dwells, config, series)
     payload["trips"] = trips or []
-    text += '<section id="trip-signals"><h2>Filtered signal for each validated interstation run</h2><p>Blue: maximum acceleration. Orange: maximum deceleration. Shading marks the measurement window. Drag across a chart or use the mouse wheel to zoom in time; exact time bounds and reset buttons are also available.</p><div id="trip-charts"></div></section>'
+    for recording in payload["recordings"]:
+        recording["display_name"] = display_recording_name(recording["recording"])
+    text += '<section id="trip-signals"><h2>Filtered signal for each validated interstation run</h2><p>Blue: maximum acceleration. Orange: maximum deceleration. Shading marks the measurement window. Drag across a chart or use the mouse wheel to zoom in time; exact time bounds and reset buttons are also available.</p><p>Station names inferred from stop order when accepted stop counts match the route. Partial edge runs are identified explicitly. Running durations exclude station dwell; warnings compare the same directed interstation on the same line, using the sample standard deviation and at least three complete runs. Fewer samples are marked insufficient. The rule is a diagnostic, not proof of an incorrect station assignment.</p><p><a href="run_durations.csv">Download running-duration statistics</a></p><div id="trip-charts"></div></section>'
     encoded = json.dumps(payload, allow_nan=False, default=lambda v: v.item(), separators=(",", ":"))
     (output / "report_data.json").write_text(encoded, encoding="utf-8")
     text += ''.join(cells) + '<script id="review-data" type="application/json">' + encoded.replace("<", "\\u003c") + '</script><script src="trip_charts.js"></script><script src="report_ui.js"></script></html>'
@@ -259,11 +262,11 @@ def main():
             signal.to_csv(output / f"signal_{len(summaries):02d}.csv", index=False)
             if not stops.empty:
                 own_stops = stops[stops.recording == folder.name]
+                own_metrics, own_charts = build_runs(folder.name, signal, own_stops,
+                    [dict(q, id=candidate_id(q)) for q in intervals + [q for d in stop_diagnostics for q in d["rejected_dwells"]]], config)
+                trip_metrics.extend(own_metrics)
+                trip_charts.extend(own_charts)
                 for number, start, end, section in split_sections(signal, own_stops):
-                    restart = resolve_restart(own_stops, start, intervals + [q for d in stop_diagnostics for q in d["rejected_dwells"]])
-                    trip_metrics.append(trip_acceleration(folder.name, number, restart, end, section,
-                        config.get("trip_window_seconds", 30), config.get("trip_restart_offset_seconds", 0.5), start))
-                    trip_charts.append(trip_chart(trip_metrics[-1], section))
                     sections_folder = output / "sections"
                     sections_folder.mkdir(exist_ok=True)
                     filename = f"sections/{len(summaries):02d}_{number:03d}.csv"
@@ -285,6 +288,7 @@ def main():
     write_csv(orientation_checks, output / "orientation_checks.csv", columns=["recording", "stop_start_s", "phase", "mean_forward_mps2", "verdict"])
     write_csv(sensors, output / "sensors.csv")
     write_csv(section_inventory, output / "sections.csv", columns=["recording", "section", "start_s", "end_s", "file", "contains_gap"])
+    duration_statistics(trip_metrics)
     write_trip_acceleration(output, trip_metrics, config.get("trip_window_seconds", 30),
                             config.get("trip_restart_offset_seconds", 0.5))
     write_csv([{"recording": q["recording"], "time_s": q["start_s"], "accepted": False,
