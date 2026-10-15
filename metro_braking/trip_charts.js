@@ -8,6 +8,7 @@
     return node;
   };
   window.renderTripCharts = trips => {
+    window.renderRunComparisons?.(trips);
     const root = document.getElementById('trip-charts');
     if (!root) return;
     root.replaceChildren();

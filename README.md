@@ -348,3 +348,17 @@ console warning rather than failing with “Stop file references unknown recordi
 The input CSV is not changed; restore the source folder to reuse those reviews.
 `manifest.json` records ignored recording names. `--allow-empty` allows regeneration
 when all recordings are archived.
+
+## Comparing the same interstation run
+
+**Compare the same interstation run** overlays filtered acceleration for repeated
+complete runs on the same line and directed station pair. Select an interstation;
+all curves start at their validated restart, without stretching time to align
+arrivals. Runs with unknown departures, unknown arrivals, ambiguous station names
+or gaps are excluded. Each group needs at least two eligible runs.
+
+The legend identifies each recording and its running duration. Uncheck a recording
+to hide it, or click its name to inspect its individual run. Drag, scroll, enter
+time bounds, or use the zoom buttons to inspect the comparison. **First 30 s**
+focuses on departures; **Full runs** restores the full time range. Comparisons
+update when sections are exported after reviewing stops.

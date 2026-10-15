@@ -98,6 +98,7 @@ def report_contents(summaries, has_failures):
              ("route-checks", "Route and direction checks"),
              ("event-comparison", "Exploratory comparison"),
              ("restart-extrema", "Acceleration and deceleration after validated restarts"),
+             ("run-comparisons", "Compare the same interstation run"),
              ("trip-signals", "Filtered signal for each validated interstation run"),
              ("archived-recordings", "Archived recordings")]
     items = ''.join(f'<li><a href="#{target}">{label}</a></li>' for target, label in links)
@@ -213,11 +214,12 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     payload["trips"] = trips or []
     for recording in payload["recordings"]:
         recording["display_name"] = display_recording_name(recording["recording"])
+    text += '<section id="run-comparisons"><h2>Compare the same interstation run</h2><p>Overlay complete validated runs on the same line and directed station pair. Time zero is the validated restart; time is not stretched to match arrivals. Partial runs and runs without confirmed station assignments are excluded. Use the checkboxes to hide individual signals, drag or scroll to zoom, and click a recording name to inspect its run.</p><div id="run-comparison-charts"></div></section>'
     text += '<section id="trip-signals"><h2>Filtered signal for each validated interstation run</h2><p>Blue: departure-window maximum acceleration. Orange: departure-window maximum deceleration. Purple: maximum deceleration in the configured window before the next validated arrival (20 seconds by default). Blue and purple shading identify the two measurement windows; a purple vertical line marks the next arrival. If arrival is not identified, no pre-arrival measurement is inferred from the recording end. Drag across a chart or use the mouse wheel to zoom in time; exact time bounds and reset buttons are also available.</p><p>Station names inferred from stop order when accepted stop counts match the route. Partial edge runs are identified explicitly. Running durations exclude station dwell; warnings compare the same directed interstation on the same line, using the sample standard deviation and at least three complete runs. Fewer samples are marked insufficient. The rule is a diagnostic, not proof of an incorrect station assignment.</p><p><a href="run_durations.csv">Download running-duration statistics</a></p><div id="trip-charts"></div></section>'
     encoded = json.dumps(payload, allow_nan=False, default=lambda v: v.item(), separators=(",", ":"))
     (output / "report_data.json").write_text(encoded, encoding="utf-8")
-    text += ''.join(cells) + '<script id="review-data" type="application/json">' + encoded.replace("<", "\\u003c") + '</script><script src="trip_charts.js"></script><script src="report_ui.js"></script></html>'
-    for asset in ("report_ui.js", "report_ui.css", "trip_charts.js"):
+    text += ''.join(cells) + '<script id="review-data" type="application/json">' + encoded.replace("<", "\\u003c") + '</script><script src="run_comparison.js"></script><script src="trip_charts.js"></script><script src="report_ui.js"></script></html>'
+    for asset in ("report_ui.js", "report_ui.css", "run_comparison.js", "trip_charts.js"):
         shutil.copyfile(Path(__file__).with_name(asset), output / asset)
     (output / "report.html").write_text(text, encoding="utf-8")
 
