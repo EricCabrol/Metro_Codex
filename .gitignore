@@ -1,8 +1,28 @@
+# Python environments and generated caches
 __pycache__/
+*.py[cod]
 *.egg-info/
 .venv/
-results/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
 
-data_test_archive/
-
+# Local analysis outputs and archived recordings
+/results/
+/results_reviewed/
+/data_test_archive/
 .recording_cache/
+
+# Sensor exports and legacy timestamps unused by the analysis
+/data_test/**/Magnetometer.csv
+/data_test/**/MagnetometerUncalibrated.csv
+/data_test/**/TotalAcceleration.csv
+/data_test/**/timestamps.txt
+/data_test/**/timestamps_valid.txt
+
+# Operating-system temporary files
+.DS_Store
+Thumbs.db
