@@ -113,6 +113,22 @@ def report_contents(summaries, has_failures):
             f'<details><summary>Recordings and stop reviews</summary><ul>{recordings}</ul></details></nav>')
 
 
+def route_checks_table(summaries):
+    columns = ["recording", "expected_intermediate_stops", "detected_interior_stops",
+               "short_dwell_candidates", "stop_count_status", "orientation_status"]
+    rows = []
+    for i, summary in enumerate(summaries):
+        expected = summary.get("expected_intermediate_stops")
+        detected = summary.get("detected_interior_stops")
+        mismatch = pd.notna(expected) and pd.notna(detected) and expected != detected
+        cells = [f'<td><a href="#stop-review-{i}">{html.escape(display_recording_name(summary["recording"]))}</a></td>']
+        cells.extend(f'<td>{html.escape(str(summary.get(column, "")))}</td>' for column in columns[1:])
+        row_class = ' class="stop-count-mismatch"' if mismatch else ""
+        rows.append(f'<tr{row_class}>{"".join(cells)}</tr>')
+    headings = "".join(f'<th scope="col">{column}</th>' for column in columns)
+    return f'<table class="route-checks-table"><thead><tr>{headings}</tr></thead><tbody>{"".join(rows)}</tbody></table>'
+
+
 def continuity_notice(summary):
     notices = []
     for title, prefix, duration in (("Acceleration signal", "", summary["duration_s"]),
@@ -131,7 +147,6 @@ def continuity_notice(summary):
 
 
 def report(output, summaries, events, failures, quiet, rejected_dwells, config, series, trips=None, stops=None, data_directory=None):
-    inventory = pd.DataFrame(summaries)
     event_frame = pd.DataFrame(events)
     cells = []
     for i, summary in enumerate(summaries):
@@ -180,8 +195,7 @@ def report(output, summaries, events, failures, quiet, rejected_dwells, config, 
     text += '<p>Red shading: expected braking; blue: opposite-sign events retained when direction is uncertain; green: qualifying dwell candidates; orange: short quiet intervals excluded from counts; purple dashed lines: original SensorLogger Stop annotations. Stops use uncalibrated XYZ variation (green trace) and longitudinal distance from a quiet-window baseline (gray trace), with a trailing one-second window. Disturbances of up to 1.5 seconds may be bridged; recording gaps never are. At least 90% of each candidate must be quiet. Steady motion can still produce a false positive.</p>'
     text += '<p>Expected arrivals exclude the origin and include the destination. Intermediate stops exclude both endpoints. The count check compares interior candidates with intermediate stations; endpoint dwells may be truncated, and gaps or passenger movement may hide stops. Accepted stops with a matching count are assigned station names in route order, as checked during human review.</p>'
     text += '<p>Use Accept, Discard or Pending below to review station stops. Arrival and restart times are editable. Rolling-window onset can lag the actual arrival. Download reviewed stops CSV exports decisions without manual editing. For automatic disk saves and section exports, run <code>python -m metro_braking --serve</code> and open the printed local URL. Braking-event labels remain a separate workflow.</p>'
-    columns = ["recording", "expected_arrivals", "expected_intermediate_stops", "detected_interior_stops", "short_dwell_candidates", "stop_count_status", "orientation_status"]
-    text += '<h2 id="route-checks">Route and direction checks</h2>' + inventory.reindex(columns=columns).assign(recording=lambda frame: frame.recording.map(display_recording_name)).to_html(index=False)
+    text += '<h2 id="route-checks">Route and direction checks</h2>' + route_checks_table(summaries)
     text += '<p>Full sampling and axis details: <a href="inventory.csv">inventory.csv</a>. Direction evidence: <a href="orientation_checks.csv">orientation_checks.csv</a>.</p>'
     text += '<p>Station-order sources, checked 30 September 2026: ' + ', '.join(f'<a href="{line["source"]}">Transilien line {number}</a>' for number, line in CATALOG["lines"].items()) + '. Regular topology is used for the 2024 recordings; current closures are not applied.</p>'
     text += '<h2 id="event-comparison">Exploratory comparison</h2>' + comparison
