@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import sys
 import tempfile
+import time
 
 import matplotlib
 import numpy as np
@@ -63,6 +64,19 @@ def recording_signature(name, files, config, reviews, stops, version):
     return hashlib.sha256(json.dumps(inputs, sort_keys=True, default=lambda value:value.item()).encode()).hexdigest()
 
 
+def retry_file_access(operation):
+    """Allow bounded retries for transient Windows sharing/access locks."""
+    delays = (.05, .1, .2, .4, .8)
+    for attempt in range(len(delays)+1):
+        try:
+            return operation()
+        except OSError as error:
+            transient = isinstance(error, PermissionError) or getattr(error, 'winerror', None) in (5, 32, 33)
+            if not transient or attempt == len(delays):
+                raise
+            time.sleep(delays[attempt])
+
+
 class RecordingCache:
     def __init__(self, directory):
         self.directory = Path(directory).resolve()
@@ -103,41 +117,58 @@ class RecordingCache:
         except (OSError, ValueError, KeyError, TypeError):
             return None
 
-    def process(self, name, signature, build):
-        """Only successful, complete snapshots are published; failed work stays temporary."""
+    def process(self, name, signature, build, output=None, index=0):
+        """Export successful analysis before publishing its optional cache snapshot."""
         entry = self.entry(name, signature)
-        with tempfile.TemporaryDirectory(prefix='building-', dir=self.directory) as temporary:
+        with tempfile.TemporaryDirectory(prefix='building-', dir=self.directory, ignore_cleanup_errors=True) as temporary:
             staged = Path(temporary)/'snapshot'
             staged.mkdir()
             result = build(staged)
-            (staged/'result.json').write_text(json.dumps(result, allow_nan=False, default=lambda value:value.item()), encoding='utf-8')
-            artifacts = {str(path.relative_to(staged).as_posix()):file_digest(path)
-                         for path in staged.rglob('*') if path.is_file()}
-            (staged/'cache.json').write_text(json.dumps(dict(schema=CACHE_VERSION, recording=name,
-                signature=signature, artifacts=artifacts), indent=2), encoding='utf-8')
-            # Replacing an invalid or explicitly recomputed snapshot never affects source data.
-            previous = Path(temporary)/'previous'
-            if entry.exists():
-                entry.rename(previous)
+            persistence_error = None
             try:
-                staged.rename(entry)
-            except Exception:
-                if previous.exists():
-                    previous.rename(entry)
-                raise
+                (staged/'result.json').write_text(json.dumps(result, allow_nan=False, default=lambda value:value.item()), encoding='utf-8')
+                artifacts = {str(path.relative_to(staged).as_posix()):file_digest(path)
+                             for path in staged.rglob('*') if path.is_file()}
+                (staged/'cache.json').write_text(json.dumps(dict(schema=CACHE_VERSION, recording=name,
+                    signature=signature, artifacts=artifacts), indent=2), encoding='utf-8')
+            except OSError as error:
+                persistence_error = error
+            # The report must not depend on a successful directory rename. The
+            # serialized snapshot retains index 00; only the exported in-memory
+            # result gets remapped to its actual position in the current report.
+            if output is not None:
+                self.materialize(name, signature, result, output, index, source=staged)
+            if persistence_error is None:
+                previous = Path(temporary)/'previous'
+                try:
+                    if entry.exists():
+                        retry_file_access(lambda: entry.rename(previous))
+                    try:
+                        retry_file_access(lambda: staged.rename(entry))
+                    except OSError:
+                        if previous.exists():
+                            retry_file_access(lambda: previous.rename(entry))
+                        raise
+                except OSError as error:
+                    persistence_error = error
+            if persistence_error is not None:
+                if output is None:
+                    raise persistence_error
+                print(f'Cache save skipped for {name}: {persistence_error}. '
+                      'Analysis results were kept; this recording may be recomputed next time.', flush=True)
             return result
 
-    def materialize(self, name, signature, result, output, index):
-        entry = self.entry(name, signature)
-        for source, destination in [('plots/00.png', f'plots/{index:02d}.png'),
+    def materialize(self, name, signature, result, output, index, source=None):
+        entry = source if source is not None else self.entry(name, signature)
+        for relative, destination in [('plots/00.png', f'plots/{index:02d}.png'),
                                     ('signal_00.csv', f'signal_{index:02d}.csv'),
                                     ('stop_signal_00.csv', f'stop_signal_{index:02d}.csv')]:
             target = output/destination
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(entry/source, target)
+            retry_file_access(lambda: shutil.copyfile(entry/relative, target))
         result['summary']['signal_file'] = f'signal_{index:02d}.csv'
         for section in result['sections']:
             target = f"sections/{index:02d}_{section['section']:03d}.csv"
             (output/'sections').mkdir(exist_ok=True)
-            shutil.copyfile(entry/section['file'], output/target)
+            retry_file_access(lambda: shutil.copyfile(entry/section['file'], output/target))
             section['file'] = target

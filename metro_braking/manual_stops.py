@@ -56,9 +56,14 @@ def manual_decisions_from_rows(rows):
 
 def initial_decisions_from_rows(payload, rows):
     """Embed CSV review state in regenerated static reports, retaining stable IDs."""
-    decisions = manual_decisions_from_rows(rows)
     if rows is None or rows.empty:
-        return decisions
+        return {}
+    # An unsuccessful recording can still have retained CSV reviews. Embed only
+    # decisions for recordings actually present in this report; never delete the
+    # original rows, which must become usable again after a successful rerun.
+    names = {recording['recording'] for recording in payload['recordings']}
+    rows = rows.loc[rows.recording.isin(names)]
+    decisions = manual_decisions_from_rows(rows)
     for row in rows.to_dict('records'):
         if is_manual(row.get('manual')):
             continue
