@@ -132,11 +132,17 @@ review. `orientation_checks.csv` contains the individual checks.
 ## Review and rerun
 
 The report has browser stop-review controls: **Accept**, **Discard**, **Pending**,
-editable arrival times and notes, a signal view that zooms around the selected
+editable arrival/restart times and notes, a signal view that zooms around the selected
 candidate, and live accepted counts alongside the expected intermediate count.
 All candidates start pending, including those passing automatic detection.
 You can inspect and accept a short candidate manually. Diagnostics remain
 available under an expandable section for each recording.
+
+Shading, focus zoom, interval labels and durations follow edited arrival/restart
+times immediately. Solid blue marks the selected arrival; dashed blue marks its
+restart. Hover an automatically detected candidate name to see its original
+bounds. An extended accepted interval remains visible over pending or discarded
+candidates that it replaces. Export sections to refresh the run metrics.
 
 For automatic disk saves, run from this directory:
 
