@@ -49,15 +49,19 @@ server-backed persistence.
 
 ## Development
 
-Python 3.10+. Install with python -m pip install -e . using an existing virtual
-environment where available. The user's Windows interpreter is
-..\Metro\.conda\python.exe. Run commands from the repository root:
+Use uv with the committed uv.lock and .python-version (Python 3.12 development
+environment; package compatibility remains Python 3.10+). Run from the root:
 
 ```sh
-python -m unittest discover -s tests -v
-python -m metro_braking --output results_reviewed
-python -m metro_braking --serve --output results_reviewed
+uv sync --locked
+uv run --locked python -m unittest discover -s tests -v
+uv run --locked python -m metro_braking --output results_reviewed
+uv run --locked python -m metro_braking --serve --output results_reviewed
 ```
+
+Do not use the neighboring project's Conda environment. uv manages this repo's
+ignored .venv. Use uv add/remove for dependency changes and commit pyproject.toml
+and uv.lock together. Upgrade the lock only intentionally and verify tests.
 
 Analysis automatically loads reviews/stops.csv. Incremental cache signatures
 check sources, configuration, reviews and processing code. Rendering-only changes
@@ -74,7 +78,7 @@ inspect their prerequisites. Do not add browser tooling as Python dependencies.
 For a requested Pages refresh:
 
 ```sh
-python scripts/build_pages_demo.py --report results_reviewed
+uv run --locked python scripts/build_pages_demo.py --report results_reviewed
 ```
 
 The builder exports statistics and filtered comparable-run samples, and copies

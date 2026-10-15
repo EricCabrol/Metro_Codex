@@ -7,22 +7,42 @@ implementation or generated stop timestamps are used.
 
 ## Run
 
-Python 3.10+ with NumPy, pandas, SciPy and Matplotlib:
+The project uses **uv**, a local `.venv` and the committed `uv.lock`.
+Python 3.12 is selected by `.python-version`; uv can install it automatically.
+No neighboring project or Conda environment is required.
+
+Install uv once on Windows (PowerShell), then reopen the terminal:
 
 ```powershell
-python -m pip install -e .
-python -m metro_braking --data data_test --output results
-python -m unittest discover -s tests -v
+winget install --id astral-sh.uv -e
 ```
 
-On this workstation the pre-existing scientific environment is also usable
-without installing anything:
+From the repository root:
 
 ```powershell
-& '..\Metro\.conda\python.exe' -m metro_braking --data data_test --output results
+uv sync --locked
+uv run --locked python -m metro_braking --data data_test --output results_reviewed
+uv run --locked python -m metro_braking --serve --output results_reviewed
 ```
 
-Run from this directory. Open `results/report.html` in a browser. The report is
+Stop the server with Ctrl+C. No environment activation is needed. In VS Code,
+select `.venv\Scripts\python.exe` with **Python: Select Interpreter**.
+If a different `.venv` already exists, rename it before the first sync rather
+than mixing environments. Leave the neighboring project's Conda folder intact.
+
+After a pull, `uv sync --locked` installs the exact dependency versions from
+`uv.lock`. Run tests with:
+
+```powershell
+uv run --locked python -m unittest discover -s tests -v
+```
+
+For intentional dependency changes, use `uv add PACKAGE` / `uv remove PACKAGE`;
+commit both `pyproject.toml` and `uv.lock`. Use `uv lock --upgrade` only for an
+intentional dependency upgrade, then sync and run the tests. Python 3.10+ remains
+the package compatibility range; the shared development environment uses 3.12.
+
+Run from this directory. Open `results_reviewed/report.html` in a browser. The report is
 self-contained locally (PNG images beside the HTML; no network dependencies).
 
 ## Data provenance
@@ -36,7 +56,7 @@ and legacy `timestamps*.txt` files are ignored; local copies may be retained.
 
 Generated `results/` and `results_reviewed/` reports, recording caches and
 archived source folders are ignored by Git. Regenerate a reviewed report with
-`python -m metro_braking --output results_reviewed`; saved decisions in
+`uv run --locked python -m metro_braking --output results_reviewed`; saved decisions in
 `reviews/` remain tracked and are loaded automatically. The published snapshot
 in `demo/` remains tracked for GitHub Pages.
 `manifest.json` in the output records SHA-256 hashes, configuration, reviews,
@@ -206,9 +226,7 @@ candidates that it replaces. Export sections to refresh the run metrics.
 For automatic disk saves, run from this directory:
 
 ```powershell
-python -m metro_braking --serve
-# With the existing workstation environment:
-& '..\Metro\.conda\python.exe' -m metro_braking --serve
+uv run --locked python -m metro_braking --serve
 ```
 
 Open the printed address (default `http://127.0.0.1:8765/report.html`). Each choice
@@ -225,7 +243,7 @@ Pending and discarded stops are excluded. You can also use saved browser reviews
 with the existing batch workflow:
 
 ```powershell
-python -m metro_braking --stops reviews/stops.csv --output results_reviewed
+uv run --locked python -m metro_braking --stops reviews/stops.csv --output results_reviewed
 ```
 
 Each interstation run between two accepted stop times produces independent acceleration
@@ -353,7 +371,7 @@ Accepted review rows assert a human-confirmed braking event. Keep review files
 outside generated output directories to avoid overwriting your work.
 
 ```powershell
-python -m metro_braking --reviews review.csv --output results_reviewed
+uv run --locked python -m metro_braking --reviews review.csv --output results_reviewed
 ```
 
 For station-to-station sections, copy `results/stop_review_template.csv` to
@@ -363,7 +381,7 @@ arrival. Supply at least two accepted boundaries per recording to export a
 section. Sections preserve original elapsed timestamps and gap block IDs.
 
 ```powershell
-python -m metro_braking --reviews review.csv --stops stops.csv --output results_reviewed
+uv run --locked python -m metro_braking --reviews review.csv --stops stops.csv --output results_reviewed
 ```
 
 `sections.csv` indexes the section CSVs and flags sections spanning gaps.
@@ -475,7 +493,7 @@ Stop decisions saved by the review server remain in `reviews/stops.json` and
 recording folders simply rerun:
 
 ```powershell
-python -m metro_braking --output results_reviewed
+uv run --locked python -m metro_braking --output results_reviewed
 ```
 
 The console and report show how many recordings were reused or recomputed.
@@ -523,8 +541,8 @@ The site URL is `https://ericcabrol.github.io/Metro_Codex/` after successful dep
 To update the snapshot after generating/reviewing a report:
 
 ```powershell
-python scripts/build_pages_demo.py --report results_reviewed
+uv run --locked python scripts/build_pages_demo.py --report results_reviewed
 ```
 
 Commit the updated files in `demo/` and push to `main` to publish the new snapshot.
-For local inspection, serve that folder with `python -m http.server 8000 --directory demo`.
+For local inspection, serve that folder with `uv run --locked python -m http.server 8000 --directory demo`.
