@@ -48,6 +48,35 @@ Copy any of those files you want to retain outside the checkout before pulling;
 then restore them locally (they will be ignored). Reviewed reports can instead
 be regenerated with the command above.
 
+### Resolving the one-time generated-report cleanup
+
+Before pulling the cleanup, copy results_reviewed outside the checkout to a new
+backup location and verify that copy. If local report edits block the pull, run:
+
+```powershell
+git restore --source=HEAD --staged --worktree -- results_reviewed
+git pull
+```
+
+If a local commit also changed those outputs, the merge may then report
+modify/delete conflicts. Remove the report from the index, preserving remaining
+local copies, and check for other unresolved conflicts:
+
+```powershell
+git rm -r --cached -f -- results_reviewed
+git diff --name-only --diff-filter=U
+```
+
+Only if the second command lists no paths, finish with:
+
+```powershell
+git commit -m "Merge cleanup and stop tracking generated reports"
+```
+
+Otherwise resolve the remaining conflicts first. After the successful merge,
+restore the backed-up report or regenerate it. Do not discard reviews or raw
+recordings to resolve generated-report conflicts.
+
 ## Method
 
 1. Inventory available CSV files. Prefer `Accelerometer.csv`, whose test-set
@@ -148,6 +177,18 @@ review. `orientation_checks.csv` contains the individual checks.
 The report has browser stop-review controls: **Accept**, **Discard**, **Pending**,
 editable arrival/restart times and notes, a signal view that zooms around the selected
 candidate, and live accepted counts alongside the expected intermediate count.
+**Accept all** accepts all pending candidates in one recording in a single save,
+including short candidates. Discarded stops stay discarded; edited times and
+notes are preserved. The button is disabled when no decisions remain pending.
+
+Yellow **Pending decisions (n)** and green **Review complete** badges update
+immediately in each review and in the route-check table. Review complete means
+no pending decisions; count mismatches and quality warnings remain independent.
+
+The main report retains Global Statistics and same-interstation comparisons.
+The Exploratory comparison and restart-extrema overview sections are removed.
+Detailed filtered run signals appear at the end, after recording reviews.
+
 The Route and direction checks table uses `accepted_interior_stops` and refreshes
 its count, pending status and red mismatch highlighting immediately with each
 review edit or manual stop addition. Hover its count to see the original automatic
