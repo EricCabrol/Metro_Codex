@@ -96,7 +96,7 @@ def load_recording(folder, config, source_name=None):
     eigenvalues, eigenvectors = np.linalg.eigh(covariance)
     pca_axis = eigenvectors[:, -1]
     pca_axis *= 1 if pca_axis[np.argmax(np.abs(pca_axis))] >= 0 else -1
-    named_recording = bool(re.match(r"^L\d+_", folder.name))
+    named_recording = bool(re.match(r"^L\d+(?:[ _-]?(?:bis|b))?[_ ]", folder.name, re.I))
     expected_polarity = -1 if re.search(r"(?:^|_)Yinv(?:_|-|$)", folder.name, re.I) else 1
     axis = np.array([0., 1., 0.]) if named_recording else pca_axis.copy()
     overrides = config.get("recordings", {}).get(folder.name, {})
