@@ -592,6 +592,228 @@
       "note": "",
       "manual": true,
       "recording": "L3_Sentier_-_St-Lazare_-_Yinv_-2024-06-28_16-31-47"
+    },
+    "347163b372f9b748ca63": {
+      "decision": "discarded",
+      "time_s": 1.0931257324218753,
+      "restart_s": 8.543125732421878,
+      "note": ""
+    },
+    "caac6b7c2776d477c4e3": {
+      "decision": "accepted",
+      "time_s": 57.14312573242189,
+      "restart_s": 71.9431257324219,
+      "note": ""
+    },
+    "68d9e2e1f3020def1392": {
+      "decision": "accepted",
+      "time_s": 145.49312573242193,
+      "restart_s": 164.29312573242194,
+      "note": ""
+    },
+    "beb1a4da01c678f90224": {
+      "decision": "accepted",
+      "time_s": 208.64312573242194,
+      "restart_s": 236.09312573242195,
+      "note": ""
+    },
+    "e6e40e22f52c478aa436": {
+      "decision": "accepted",
+      "time_s": 286.74312573242196,
+      "restart_s": 317.343125732422,
+      "note": ""
+    },
+    "239ba241fb2cdb6f8c86": {
+      "decision": "accepted",
+      "time_s": 361.993125732422,
+      "restart_s": 383.543125732422,
+      "note": ""
+    },
+    "9b7f7f412b47aad5e1d7": {
+      "decision": "accepted",
+      "time_s": 436.943125732422,
+      "restart_s": 455.743125732422,
+      "note": ""
+    },
+    "b3a3268a4944b9dad406": {
+      "decision": "accepted",
+      "time_s": 503.793125732422,
+      "restart_s": 523.743125732422,
+      "note": ""
+    },
+    "d7022b9b2ba22417db14": {
+      "decision": "discarded",
+      "time_s": 218.65749340820318,
+      "restart_s": 226.50749340820317,
+      "note": ""
+    },
+    "f9c17fd2ee64619e6133": {
+      "decision": "accepted",
+      "time_s": 161.50749340820317,
+      "restart_s": 180.65749340820318,
+      "note": ""
+    },
+    "69328313ec5a6befa67f": {
+      "decision": "accepted",
+      "time_s": 236.2074934082032,
+      "restart_s": 383.85749340820325,
+      "note": ""
+    },
+    "manual-5cc86394-d8c4-4112-a06c-c815cc238935": {
+      "decision": "accepted",
+      "time_s": 78.72,
+      "restart_s": 90.467,
+      "note": "",
+      "manual": true,
+      "recording": "L12_Montparnasse_-_Vaugirard_-2024-07-01_16-17-15"
+    },
+    "f2cb80bb98929d017656": {
+      "decision": "accepted",
+      "time_s": 57.57721240234375,
+      "restart_s": 71.82721240234375,
+      "note": ""
+    },
+    "cd4a3a28246046863fae": {
+      "decision": "accepted",
+      "time_s": 133.57721240234375,
+      "restart_s": 155.27721240234376,
+      "note": ""
+    },
+    "e6388fde997a0ccfa5a0": {
+      "decision": "accepted",
+      "time_s": 55.83394287109375,
+      "restart_s": 73.63394287109375,
+      "note": ""
+    },
+    "90808121d1168cc127e1": {
+      "decision": "accepted",
+      "time_s": 135.18394287109373,
+      "restart_s": 151.18394287109373,
+      "note": ""
+    },
+    "a0c3ff47f59c9763b11f": {
+      "decision": "accepted",
+      "time_s": 51.75640356445313,
+      "restart_s": 67.75640356445314,
+      "note": ""
+    },
+    "41b644d3085eca303b93": {
+      "decision": "accepted",
+      "time_s": 128.50640356445314,
+      "restart_s": 144.60640356445313,
+      "note": ""
+    },
+    "34a8f8c4a10ea6a7a112": {
+      "decision": "accepted",
+      "time_s": 60.55581762695314,
+      "restart_s": 79.15581762695315,
+      "note": ""
+    },
+    "a94b9783c9ec4fc788e0": {
+      "decision": "accepted",
+      "time_s": 140.70581762695318,
+      "restart_s": 167.95581762695318,
+      "note": ""
+    },
+    "1d7f4a395dab55b3071b": {
+      "decision": "accepted",
+      "time_s": 136.4116022949219,
+      "restart_s": 161.0616022949219,
+      "note": ""
+    },
+    "manual-a66aed95-f712-442b-8f10-3fcf0dd103a7": {
+      "decision": "accepted",
+      "time_s": 56.555,
+      "restart_s": 74.166,
+      "note": "",
+      "manual": true,
+      "recording": "L12_Montparnasse_-_Volontaires_-2024-04-19_18-00-55"
+    },
+    "fdb6c75fd2670bbd2424": {
+      "decision": "accepted",
+      "time_s": 59.75167871093752,
+      "restart_s": 79.85167871093753,
+      "note": ""
+    },
+    "fe65c846acb97bbfb096": {
+      "decision": "accepted",
+      "time_s": 141.05167871093755,
+      "restart_s": 162.35167871093756,
+      "note": ""
+    },
+    "6b06fa14b146466ada90": {
+      "decision": "accepted",
+      "time_s": 57.25716015625002,
+      "restart_s": 68.85716015625003,
+      "note": ""
+    },
+    "8643a9d120b2b3cb1dca": {
+      "decision": "accepted",
+      "time_s": 128.95716015625004,
+      "restart_s": 185.40716015625006,
+      "note": ""
+    },
+    "5cc1e67031291f3f633f": {
+      "decision": "accepted",
+      "time_s": 114.36186962890625,
+      "restart_s": 127.01186962890625,
+      "note": ""
+    },
+    "manual-017f2d0b-9a3c-4d73-8969-715747b469a6": {
+      "decision": "accepted",
+      "time_s": 35.733,
+      "restart_s": 53.773,
+      "note": "",
+      "manual": true,
+      "recording": "L12_Volontaires_-_Montparnasse_-2024-02-09_06-59-22"
+    },
+    "7e6b7e1c8fdcdc095d91": {
+      "decision": "discarded",
+      "time_s": 1.0931257324218753,
+      "restart_s": 8.543125732421878,
+      "note": ""
+    },
+    "214986f9051737c8d44c": {
+      "decision": "accepted",
+      "time_s": 57.14312573242189,
+      "restart_s": 87.943,
+      "note": ""
+    },
+    "ec4c840f4bc053c2b61b": {
+      "decision": "accepted",
+      "time_s": 145.49312573242193,
+      "restart_s": 164.29312573242194,
+      "note": ""
+    },
+    "f834907eef639f3be9f1": {
+      "decision": "accepted",
+      "time_s": 208.64312573242194,
+      "restart_s": 236.09312573242195,
+      "note": ""
+    },
+    "579741d857d115ba6181": {
+      "decision": "accepted",
+      "time_s": 286.74312573242196,
+      "restart_s": 317.343125732422,
+      "note": ""
+    },
+    "1e3e1ceee16441347215": {
+      "decision": "accepted",
+      "time_s": 361.993125732422,
+      "restart_s": 383.543125732422,
+      "note": ""
+    },
+    "96b7c3b5cb223aba86be": {
+      "decision": "accepted",
+      "time_s": 436.943125732422,
+      "restart_s": 455.743125732422,
+      "note": ""
+    },
+    "c1d682f30df45693fbb0": {
+      "decision": "accepted",
+      "time_s": 503.793125732422,
+      "restart_s": 523.743125732422,
+      "note": ""
     }
   }
 }
