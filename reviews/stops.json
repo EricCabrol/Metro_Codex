@@ -814,6 +814,324 @@
       "time_s": 503.793125732422,
       "restart_s": 523.743125732422,
       "note": ""
+    },
+    "e3055c9df2bbf1e55c53": {
+      "decision": "accepted",
+      "time_s": 98.7447880859375,
+      "restart_s": 117.1447880859375,
+      "note": ""
+    },
+    "08c75c7d290366424cd9": {
+      "decision": "accepted",
+      "time_s": 205.2947880859375,
+      "restart_s": 224.2447880859375,
+      "note": ""
+    },
+    "821184aef5aa69a2cc20": {
+      "decision": "accepted",
+      "time_s": 392.99478808593756,
+      "restart_s": 412.49478808593756,
+      "note": ""
+    },
+    "ac6469ac05e4be4b5649": {
+      "decision": "accepted",
+      "time_s": 481.19478808593755,
+      "restart_s": 503.39478808593753,
+      "note": ""
+    },
+    "390060aa15021239f8b1": {
+      "decision": "accepted",
+      "time_s": 582.6447880859375,
+      "restart_s": 603.4947880859374,
+      "note": ""
+    },
+    "339ef81d849a5696a971": {
+      "decision": "accepted",
+      "time_s": 673.2947880859375,
+      "restart_s": 695.9947880859376,
+      "note": ""
+    },
+    "manual-b62d3823-48e3-4d48-ae6f-ec5f40124ee3": {
+      "decision": "accepted",
+      "time_s": 309.072,
+      "restart_s": 327.503,
+      "note": "",
+      "manual": true,
+      "recording": "L13_-_St-Lazare_-_Gait\u00e9_-_stops_avant_Duroc_et_Gait\u00e9_-2024-05-03_17-14-03"
+    },
+    "18a3983ffd951fd7643f": {
+      "decision": "accepted",
+      "time_s": 59.427,
+      "restart_s": 82.37725512695316,
+      "note": ""
+    },
+    "6c7dec26fbf1824032dc": {
+      "decision": "accepted",
+      "time_s": 137.02725512695315,
+      "restart_s": 158.57725512695316,
+      "note": ""
+    },
+    "976a73dfc9a181e7bed7": {
+      "decision": "accepted",
+      "time_s": 217.7272551269532,
+      "restart_s": 239.2772551269532,
+      "note": ""
+    },
+    "39e79236ba00fcf8aca6": {
+      "decision": "accepted",
+      "time_s": 319.62725512695323,
+      "restart_s": 345.87725512695323,
+      "note": ""
+    },
+    "c2e7ecf9a40b28299471": {
+      "decision": "accepted",
+      "time_s": 419.67725512695324,
+      "restart_s": 441.5772551269533,
+      "note": ""
+    },
+    "582dbfb7f1d56c36ca83": {
+      "decision": "discarded",
+      "time_s": 1.0917783203125002,
+      "restart_s": 10.641778320312504,
+      "note": ""
+    },
+    "4c8622582dbc0199f07f": {
+      "decision": "accepted",
+      "time_s": 90.79177832031253,
+      "restart_s": 115.09177832031253,
+      "note": ""
+    },
+    "13eed21dc521337fbed2": {
+      "decision": "accepted",
+      "time_s": 193.64177832031257,
+      "restart_s": 213.2417783203126,
+      "note": ""
+    },
+    "bf39cc2d50b0dba59f01": {
+      "decision": "accepted",
+      "time_s": 269.5917783203126,
+      "restart_s": 289.6417783203126,
+      "note": ""
+    },
+    "56d907c6f6fb2b1476ba": {
+      "decision": "accepted",
+      "time_s": 346.2417783203126,
+      "restart_s": 361.79177832031263,
+      "note": ""
+    },
+    "dbce23f9ea10b708b288": {
+      "decision": "accepted",
+      "time_s": 423.6917783203126,
+      "restart_s": 441.64177832031265,
+      "note": ""
+    },
+    "cdfed565845a38e98d3c": {
+      "decision": "accepted",
+      "time_s": 527.3917783203127,
+      "restart_s": 553.7417783203126,
+      "note": ""
+    },
+    "77164078c65e0a9383e0": {
+      "decision": "accepted",
+      "time_s": 635.1417783203127,
+      "restart_s": 655.0417783203127,
+      "note": ""
+    },
+    "3b52739f706744d4922d": {
+      "decision": "accepted",
+      "time_s": 91.77341577148438,
+      "restart_s": 123.67341577148439,
+      "note": ""
+    },
+    "d51c895081829f109ba2": {
+      "decision": "discarded",
+      "time_s": 188.6234157714844,
+      "restart_s": 193.9734157714844,
+      "note": ""
+    },
+    "4960c3e06a2f391fdcc8": {
+      "decision": "discarded",
+      "time_s": 196.9234157714844,
+      "restart_s": 218.3734157714844,
+      "note": ""
+    },
+    "023147b29a7712fa9fee": {
+      "decision": "discarded",
+      "time_s": 220.5234157714844,
+      "restart_s": 227.3234157714844,
+      "note": ""
+    },
+    "62161c37aca7118cd330": {
+      "decision": "accepted",
+      "time_s": 229.3234157714844,
+      "restart_s": 256.4234157714844,
+      "note": ""
+    },
+    "aa0c08f954187d0131c3": {
+      "decision": "accepted",
+      "time_s": 318.87341577148436,
+      "restart_s": 334.87341577148436,
+      "note": ""
+    },
+    "2aab4a746e53084d842b": {
+      "decision": "accepted",
+      "time_s": 395.1734157714844,
+      "restart_s": 416.0734157714844,
+      "note": ""
+    },
+    "a8c2da7bf425881bbb8a": {
+      "decision": "accepted",
+      "time_s": 471.87341577148436,
+      "restart_s": 510.9234157714844,
+      "note": ""
+    },
+    "9ed48cb982d9e8a5148f": {
+      "decision": "accepted",
+      "time_s": 589.6734157714844,
+      "restart_s": 618.3734157714844,
+      "note": ""
+    },
+    "84e2afd751eeab75f4c9": {
+      "decision": "discarded",
+      "time_s": 684.2234157714844,
+      "restart_s": 706.9234157714844,
+      "note": ""
+    },
+    "bf28663a52fe1896e982": {
+      "decision": "discarded",
+      "time_s": 710.8234157714844,
+      "restart_s": 728.2234157714844,
+      "note": ""
+    },
+    "manual-6596a706-45c3-4fe2-92ae-ed53d93cb7c5": {
+      "decision": "accepted",
+      "time_s": 684.301,
+      "restart_s": 727.292,
+      "note": "",
+      "manual": true,
+      "recording": "L13_Miromesnil_-_Pernety_-2024-06-28_16-42-46"
+    },
+    "3de3975f89cbd3c76890": {
+      "decision": "accepted",
+      "time_s": 85.03378466796873,
+      "restart_s": 119.184,
+      "note": ""
+    },
+    "cc873e5d802ac39ff5e4": {
+      "decision": "accepted",
+      "time_s": 202.534,
+      "restart_s": 233.5837846679687,
+      "note": ""
+    },
+    "4fda321538271834d656": {
+      "decision": "accepted",
+      "time_s": 289.9837846679687,
+      "restart_s": 314.5837846679687,
+      "note": ""
+    },
+    "c20535f5cf5a6641387b": {
+      "decision": "accepted",
+      "time_s": 371.7837846679687,
+      "restart_s": 416.0837846679687,
+      "note": ""
+    },
+    "489f176d08a0c6e6ac6d": {
+      "decision": "accepted",
+      "time_s": 571.1837846679686,
+      "restart_s": 606.2837846679686,
+      "note": ""
+    },
+    "66592d4c2ae46959d00d": {
+      "decision": "accepted",
+      "time_s": 664.3837846679686,
+      "restart_s": 690.4837846679685,
+      "note": ""
+    },
+    "2c0953188bc26f2bafce": {
+      "decision": "discarded",
+      "time_s": 470.0337846679687,
+      "restart_s": 480.33378466796864,
+      "note": ""
+    },
+    "e2522e73a5efbbbc7017": {
+      "decision": "discarded",
+      "time_s": 487.4837846679687,
+      "restart_s": 500.93378466796867,
+      "note": ""
+    },
+    "manual-c6b5e917-0389-4d01-9328-4b26713818ff": {
+      "decision": "accepted",
+      "time_s": 470.207,
+      "restart_s": 500.568,
+      "note": "",
+      "manual": true,
+      "recording": "L13_Miromesnil_-_Pernety_-_side-2024-06-06_16-33-40"
+    },
+    "bb4a9abf66cb2a09ac12": {
+      "decision": "discarded",
+      "time_s": 48.98462841796874,
+      "restart_s": 56.78462841796874,
+      "note": ""
+    },
+    "00a74d0c7d23dcad5b31": {
+      "decision": "accepted",
+      "time_s": 58.98462841796874,
+      "restart_s": 74.98462841796874,
+      "note": ""
+    },
+    "71bbe795654714561ceb": {
+      "decision": "accepted",
+      "time_s": 57.7199990234375,
+      "restart_s": 76.5199990234375,
+      "note": ""
+    },
+    "66eb65cd24da92be0086": {
+      "decision": "discarded",
+      "time_s": 1.0083205566406253,
+      "restart_s": 8.758320556640626,
+      "note": ""
+    },
+    "2d7ce2dab5ee8add56fc": {
+      "decision": "accepted",
+      "time_s": 93.30832055664064,
+      "restart_s": 116.35832055664065,
+      "note": ""
+    },
+    "f2a67a985af40caf14ac": {
+      "decision": "accepted",
+      "time_s": 174.90832055664066,
+      "restart_s": 197.45832055664067,
+      "note": ""
+    },
+    "ae6d187cc244abf5600e": {
+      "decision": "accepted",
+      "time_s": 253.25832055664068,
+      "restart_s": 273.7083205566407,
+      "note": ""
+    },
+    "0818cacad8bb01cc50e6": {
+      "decision": "accepted",
+      "time_s": 336.8583205566407,
+      "restart_s": 359.20832055664073,
+      "note": ""
+    },
+    "3608dc7d896870c3ed1b": {
+      "decision": "accepted",
+      "time_s": 456.1583205566407,
+      "restart_s": 482.20832055664073,
+      "note": ""
+    },
+    "900527f77b7739d5b492": {
+      "decision": "accepted",
+      "time_s": 579.6583205566408,
+      "restart_s": 610.4583205566407,
+      "note": ""
+    },
+    "e60bab8ee31b19b70f90": {
+      "decision": "accepted",
+      "time_s": 69.13601513671878,
+      "restart_s": 87.33601513671879,
+      "note": ""
     }
   }
 }
